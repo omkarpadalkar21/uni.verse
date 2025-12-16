@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 4%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 4%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 4%;
+    
+    --primary: 265 100% 65%;
+    --primary-foreground: 210 40% 98%;
+    
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    
+    --accent: 265 100% 65%;
+    --accent-foreground: 210 40% 98%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 265 100% 65%;
+    
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 240 25% 4%; /* #05050A - Deep space */
+    --foreground: 210 40% 98%; /* White-ish */
+
+    --card: 240 22% 8%; /* Slightly lighter than bg */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 240 22% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 265 100% 65%; /* #7439ff - Our Hero Purple */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 240 20% 15%; /* Muted deep blue/grey */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 240 20% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 265 100% 65%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 240 20% 15%;
+    --input: 240 20% 15%;
+    --ring: 265 100% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem; /* Navbar height (h-20) */
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased overflow-x-hidden;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
+}
+
+.glass-panel {
+  @apply bg-white/5 backdrop-blur-md border border-white/10;
+}
