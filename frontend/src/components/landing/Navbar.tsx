@@ -3,13 +3,15 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '@/components/theme-provider';
 
 export const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,10 +25,54 @@ export const Navbar: React.FC = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    setMobileMenuOpen(false);
+
+    const targetId = href.replace('#', '');
+    const element = document.getElementById(targetId);
+
+    if (location.pathname !== '/') {
+      navigate('/');
+      setTimeout(() => {
+        const elem = document.getElementById(targetId);
+        if (elem) {
+          const offset = 80; // Navbar height
+          const bodyRect = document.body.getBoundingClientRect().top;
+          const elementRect = elem.getBoundingClientRect().top;
+          const elementPosition = elementRect - bodyRect;
+          const offsetPosition = elementPosition - offset;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }, 300);
+    } else {
+      // Small delay to allow mobile menu to close
+      setTimeout(() => {
+        if (element) {
+          const offset = 80;
+          const bodyRect = document.body.getBoundingClientRect().top;
+          const elementRect = element.getBoundingClientRect().top;
+          const elementPosition = elementRect - bodyRect;
+          const offsetPosition = elementPosition - offset;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+        // Update URL to include hash without scrolling again
+        window.history.pushState(null, '', href);
+      }, 300);
+    }
+  };
+
   const navLinks = [
     { name: 'Features', href: '#features' },
     { name: 'How It Works', href: '#how-it-works' },
-    { name: 'Pricing', href: '#pricing' },
     { name: 'About', href: '#about' },
   ];
 
@@ -40,7 +86,11 @@ export const Navbar: React.FC = () => {
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <a href="#hero" className="flex items-center gap-2 group">
+          <a 
+            href="#hero" 
+            className="flex items-center gap-2 group"
+            onClick={(e) => handleNavClick(e, '#hero')}
+          >
             <img src="/logo.svg" alt="UniVerse Logo" className="w-8 h-8 group-hover:rotate-12 transition-transform duration-500" />
             <span className="text-xl font-bold font-sans tracking-tight">
               Uni<span className="text-primary">Verse</span>
@@ -54,6 +104,7 @@ export const Navbar: React.FC = () => {
                 key={link.name}
                 href={link.href}
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                onClick={(e) => handleNavClick(e, link.href)}
               >
                 {link.name}
               </a>
@@ -104,7 +155,7 @@ export const Navbar: React.FC = () => {
                   key={link.name}
                   href={link.href}
                   className="text-lg font-medium hover:text-primary transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(e) => handleNavClick(e, link.href)}
                 >
                   {link.name}
                 </a>

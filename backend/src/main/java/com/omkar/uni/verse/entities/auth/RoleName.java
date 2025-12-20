@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities;
+package com.omkar.uni.verse.entities.auth;
 
 public enum RoleName {
     SUPERADMIN,

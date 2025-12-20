@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities;
+package com.omkar.uni.verse.entities.auth;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -9,6 +9,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "roles")
@@ -33,6 +35,9 @@ public class Role {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL)
+    private Set<UserRole> userRoles = new HashSet<>();
 
 
 }

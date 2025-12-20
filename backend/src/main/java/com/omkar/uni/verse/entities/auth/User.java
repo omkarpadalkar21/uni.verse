@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities;
+package com.omkar.uni.verse.entities.auth;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -13,7 +13,10 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "users", indexes = {
@@ -111,4 +114,20 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "suspended_by_user_id", referencedColumnName = "id", insertable = false, updatable = false)
     private User suspendedBy;
+
+    @OneToMany(mappedBy = "user")
+    private Set<UserRole> userRoles = new HashSet<>();
+
+    @Transient
+    public Set<RoleName> getRoles() {
+        return userRoles.stream()
+                .map(userRole -> userRole.getRole().getName())
+                .collect(Collectors.toSet());
+    }
+
+    @Transient
+    public boolean hasRole(RoleName roleName) {
+        return userRoles.stream()
+                .anyMatch(userRole -> userRole.getRole().getName() == roleName);
+    }
 }

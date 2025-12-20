@@ -33,7 +33,7 @@ export const Footer: React.FC = () => {
           {[
             {
               title: "Product",
-              links: ["Features", "Pricing", "How It Works", "Roadmap"]
+              links: ["Features", "How It Works", "Roadmap"]
             },
             {
               title: "Resources",

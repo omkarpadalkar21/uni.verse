@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities;
+package com.omkar.uni.verse.entities.auth;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

@@ -4,7 +4,7 @@ import { Hero } from '@/components/landing/Hero';
 import { Features } from '@/components/landing/Features';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { SeatDemo } from '@/components/landing/SeatDemo';
-import { Pricing } from '@/components/landing/Pricing';
+
 import { Testimonials } from '@/components/landing/Testimonials';
 import { Stats } from '@/components/landing/Stats';
 import { FinalCTA } from '@/components/landing/FinalCTA';
@@ -22,7 +22,7 @@ const LandingPage: React.FC = () => {
         <Features />
         <HowItWorks />
         <SeatDemo />
-        <Pricing />
+
         <Testimonials />
         <FinalCTA />
       </main>

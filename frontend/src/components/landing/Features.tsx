@@ -83,7 +83,7 @@ export const Features: React.FC = () => {
                   <div className={`w-14 h-14 rounded-2xl ${feature.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
                     <feature.icon className={`w-8 h-8 ${feature.color}`} />
                   </div>
-                  <CardTitle className="text-xl mb-2 group-hover:text-white transition-colors">
+                  <CardTitle className="text-xl mb-2 group-hover:text-primary transition-colors">
                       {feature.title}
                   </CardTitle>
                   <CardDescription className="text-base leading-relaxed">

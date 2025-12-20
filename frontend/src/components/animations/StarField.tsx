@@ -1,7 +1,15 @@
 import React, { useEffect, useRef } from 'react';
+import { useTheme } from '@/components/theme-provider';
 
 export const StarField: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const { theme } = useTheme();
+  const colorRef = useRef('255, 255, 255');
+
+  useEffect(() => {
+    colorRef.current = theme === 'dark' ? '255, 255, 255' : '116, 57, 255';
+  }, [theme]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -28,6 +36,8 @@ export const StarField: React.FC = () => {
       });
     }
 
+    let animationFrameId: number;
+
     const animate = () => {
       ctx.clearRect(0, 0, width, height);
 
@@ -38,13 +48,13 @@ export const StarField: React.FC = () => {
           star.x = Math.random() * width;
         }
 
-        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+        ctx.fillStyle = `rgba(${colorRef.current}, ${star.opacity})`;
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     };
 
     const handleResize = () => {
@@ -59,6 +69,7 @@ export const StarField: React.FC = () => {
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
