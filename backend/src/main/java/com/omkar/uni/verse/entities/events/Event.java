@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities.clubs.events;
+package com.omkar.uni.verse.entities.events;
 
 import com.omkar.uni.verse.entities.clubs.Club;
 import com.omkar.uni.verse.entities.user.User;
@@ -10,6 +10,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -87,7 +88,8 @@ public class Event {
     private Boolean isPaid = false;
 
     @Builder.Default
-    private Double basePrice = 0D;
+    @Column(name = "total_amount", precision = 10, scale = 2, nullable = false)
+    private BigDecimal basePrice;
 
     // currency not required, targeted only for Indian Universities
 
