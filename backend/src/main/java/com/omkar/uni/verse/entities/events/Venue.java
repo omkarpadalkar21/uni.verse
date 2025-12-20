@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities.clubs.events;
+package com.omkar.uni.verse.entities.events;
 
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;

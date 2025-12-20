@@ -1,6 +1,6 @@
 package com.omkar.uni.verse.entities.clubs;
 
-import com.omkar.uni.verse.entities.clubs.events.Event;
+import com.omkar.uni.verse.entities.events.Event;
 import com.omkar.uni.verse.entities.user.User;
 
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;

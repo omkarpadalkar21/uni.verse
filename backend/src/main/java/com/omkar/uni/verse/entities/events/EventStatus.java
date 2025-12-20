@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities.clubs.events;
+package com.omkar.uni.verse.entities.events;
 
 public enum EventStatus {
     DRAFT,
