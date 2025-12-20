@@ -38,7 +38,7 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "club_id", nullable = false)
     private Club club;
 
@@ -50,7 +50,7 @@ public class Event {
     @Pattern(regexp = "^[a-z0-9-]+$", message = "Slug must contain only lowercase letters, numbers, and hyphens")
     private String slug;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
     // Schedule
@@ -64,7 +64,7 @@ public class Event {
     @Enumerated(EnumType.STRING)
     private VenueType type;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "venue_id", nullable = false)
     private Venue venue;
 
@@ -77,6 +77,8 @@ public class Event {
     private Integer capacity;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    @Builder.Default
     private EventRegistrationMode registrationMode = EventRegistrationMode.AUTO_APPROVE;
 
     @Column(nullable = false)
@@ -88,17 +90,20 @@ public class Event {
     private Boolean isPaid = false;
 
     @Builder.Default
-    @Column(name = "total_amount", precision = 10, scale = 2, nullable = false)
-    private BigDecimal basePrice;
+    @Column(name = "base_price", precision = 10, scale = 2, nullable = false)
+    private BigDecimal basePrice = BigDecimal.ZERO;
 
     // currency not required, targeted only for Indian Universities
 
     // Visibility & status
-    @Builder.Default
     @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    @Builder.Default
     private EventVisibility visibility = EventVisibility.PUBLIC;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    @Builder.Default
     private EventStatus status = EventStatus.DRAFT;
 
     @Column(columnDefinition = "TEXT")
@@ -115,20 +120,23 @@ public class Event {
 
     // Categorization
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private EventCategory category;
 
     @Column(name = "tags", columnDefinition = "text[]")
     private String[] tags = new String[0];
 
     // Metrics
+    @Column(name = "registration_count", nullable = false)
     @Builder.Default
     private Integer registrationCount = 0;
 
+    @Column(name = "attendance_count", nullable = false)
     @Builder.Default
     private Integer attendanceCount = 0;
 
     // Timestamps
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_user_id", nullable = false)
     private User createdBy;
 
@@ -139,7 +147,9 @@ public class Event {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
+    @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
+    @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 }

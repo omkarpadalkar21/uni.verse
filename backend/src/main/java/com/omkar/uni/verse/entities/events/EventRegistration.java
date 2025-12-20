@@ -32,37 +32,42 @@ public class EventRegistration {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn()
+    @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @Builder.Default
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    @Builder.Default
     private EventRegistrationStatus status = EventRegistrationStatus.PENDING;
 
-    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String rejectionReason;
 
-    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String cancellationReason;
 
-    // Approval workflow
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewed_by_user_id")
     private User reviewedBy;
 
+    @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
-    // Attendance
+    @Column(name = "checked_in_at")
     private LocalDateTime checkedInAt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "checked_in_by_user_id")
     private User checkedInBy;
 
-    // Timestamps
     @CreatedDate
-    @Column(nullable = false, updatable = false)
+    @Column(name = "registered_at", nullable = false, updatable = false)
     private LocalDateTime registeredAt;
 
+    @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 }

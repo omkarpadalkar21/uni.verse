@@ -14,7 +14,7 @@ import java.util.Map;
 
 @Entity
 @Table(
-        name = "venue",
+        name = "venues",
         indexes = {
                 @Index(name = "idx_venues_type", columnList = "type"),
         }
