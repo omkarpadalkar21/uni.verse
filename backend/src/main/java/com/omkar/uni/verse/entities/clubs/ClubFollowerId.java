@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities.auth;
+package com.omkar.uni.verse.entities.clubs;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -13,10 +13,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode
-public class UserRoleId implements Serializable {
+public class ClubFollowerId implements Serializable {
     @Column(name = "user_id")
     private UUID userId;
 
-    @Column(name = "role_id")
-    private Integer roleId;
+    @Column(name = "club_id")
+    private UUID clubId;
 }
