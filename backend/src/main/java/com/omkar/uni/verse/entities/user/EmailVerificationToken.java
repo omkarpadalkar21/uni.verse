@@ -12,7 +12,7 @@ import java.util.UUID;
 @Table(
         name = "email_verification_token", indexes = {
         @Index(name = "idx_email_verification_user_id", columnList = "user_id"),
-        @Index(name = "idx_email_verification_expires_at", columnList = "expiresAt")
+        @Index(name = "idx_email_verification_expires_at", columnList = "expires_at")
 })
 @Getter
 @Setter

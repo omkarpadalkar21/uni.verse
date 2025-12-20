@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities.clubs;
+package com.omkar.uni.verse.entities.clubs.events;
 
 public enum EventVisibility {
     PUBLIC,

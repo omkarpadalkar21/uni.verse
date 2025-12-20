@@ -29,8 +29,8 @@ public class PasswordResetToken {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "otp", length = 6)
-    private String otp;
+    @Column(name = "token", length = 6)
+    private String token;
 
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;

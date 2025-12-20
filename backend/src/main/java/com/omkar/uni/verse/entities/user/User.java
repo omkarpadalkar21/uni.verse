@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @Table(name = "users", indexes = {
         @Index(name = "idx_users_email", columnList = "email"),
         @Index(name = "idx_users_full_name", columnList = "full_name"),
-        @Index(name = "idx_users_university_id", columnList = "university_Id"),
+        @Index(name = "idx_users_university_id", columnList = "university_id"),
         @Index(name = "idx_users_account_status", columnList = "account_status")
 })
 @Getter
