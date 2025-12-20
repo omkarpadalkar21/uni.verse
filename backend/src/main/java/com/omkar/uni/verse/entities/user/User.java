@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities.auth;
+package com.omkar.uni.verse.entities.user;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -22,8 +22,8 @@ import java.util.stream.Collectors;
 @Table(name = "users", indexes = {
         @Index(name = "idx_users_email", columnList = "email"),
         @Index(name = "idx_users_full_name", columnList = "full_name"),
-        @Index(name = "idx_users_university_id", columnList = "universityId"),
-        @Index(name = "idx_users_account_status", columnList = "accountStatus")
+        @Index(name = "idx_users_university_id", columnList = "university_Id"),
+        @Index(name = "idx_users_account_status", columnList = "account_status")
 })
 @Getter
 @Setter

@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities.auth;
+package com.omkar.uni.verse.entities.user;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

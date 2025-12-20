@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities.auth;
+package com.omkar.uni.verse.entities.user;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,9 +10,10 @@ import java.util.UUID;
 
 @Entity
 @Table(
-        name = "email_verification_token", indexes = {
-        @Index(name = "idx_email_verification_user_id", columnList = "user_id"),
-        @Index(name = "idx_email_verification_expires_at", columnList = "expiresAt")
+        name = "refresh_tokens", indexes = {
+        @Index(name = "idx_refresh_tokens_user_id", columnList = "user_id"),
+        @Index(name = "idx_refresh_tokens_token", columnList = "token"),
+        @Index(name = "idx_refresh_tokens_expires_at", columnList = "expiresAt")
 })
 @Getter
 @Setter
@@ -20,7 +21,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-public class EmailVerificationToken {
+public class RefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -29,17 +30,21 @@ public class EmailVerificationToken {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "otp", length = 6)
-    private String otp;
+    @Column(name = "token", length = 500, unique = true, nullable = false)
+    private String token;
 
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
-    @Column(name = "verified_at")
-    private LocalDateTime verifiedAt;
+    @Column(name = "revoked_at")
+    private LocalDateTime revokedAt;
+
 
     @Column(name = "ip_address", length = 50)
     private String ipAddress;
+
+    @Column(name = "user_agent", columnDefinition = "TEXT")
+    private String userAgent;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)
