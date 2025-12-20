@@ -1,5 +1,6 @@
 package com.omkar.uni.verse.entities.clubs;
 
+import com.omkar.uni.verse.entities.clubs.events.Event;
 import com.omkar.uni.verse.entities.user.User;
 
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
@@ -23,8 +24,8 @@ import java.util.*;
                 @Index(name = "idx_clubs_slug", columnList = "slug"),
                 @Index(name = "idx_clubs_status", columnList = "status"),
                 @Index(name = "idx_clubs_category", columnList = "category"),
-                @Index(name = "idx_clubs_created_by", columnList = "createdByUserId"),
-                @Index(name = "idx_clubs_created_at", columnList = "createdAt")
+                @Index(name = "idx_clubs_created_by", columnList = "created_by_user_Id"),
+                @Index(name = "idx_clubs_created_at", columnList = "created_at")
         }
 )
 @Getter
@@ -39,11 +40,11 @@ public class Club {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     @Size(min = 3, max = 255, message = "Club name must be 3-255 characters")
     private String name;
 
-    @Column(unique = true, nullable = false, length = 255)
+    @Column(unique = true, nullable = false)
     @Pattern(regexp = "^[a-z0-9-]+$", message = "Slug must contain only lowercase letters, numbers, and hyphens")
     private String slug;
 

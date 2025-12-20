@@ -39,14 +39,17 @@ public class ClubMember {
     private Club club;
 
     @Column(length = 50, nullable = false)
+    @Enumerated(EnumType.STRING)
     private ClubRole role;
 
     @ManyToOne
     @JoinColumn(name = "added_by_user_id")
-    private User addedByUser;
+    private User addedBy;
 
     @CreatedDate
+    @Column(name = "joined_at", nullable = false, updatable = false)
     private LocalDateTime joinedAt;
 
+    @Column(name = "left_at")
     private LocalDateTime leftAt;
 }

@@ -1,4 +1,4 @@
-package com.omkar.uni.verse.entities.clubs;
+package com.omkar.uni.verse.entities.clubs.events;
 
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
@@ -27,7 +27,7 @@ import java.util.Map;
 @EntityListeners(AuditingEntityListener.class)
 public class Venue {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(nullable = false)
@@ -42,7 +42,7 @@ public class Venue {
 
     // seat layout
     @Type(JsonBinaryType.class)
-    @Column(name = "social_links", columnDefinition = "jsonb")
+    @Column(name = "layout_config", columnDefinition = "jsonb")
     private Map<String, String> seatLayout = new HashMap<>();
 
     private String location;

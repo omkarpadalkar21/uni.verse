@@ -1,5 +1,6 @@
-package com.omkar.uni.verse.entities.clubs;
+package com.omkar.uni.verse.entities.clubs.events;
 
+import com.omkar.uni.verse.entities.clubs.Club;
 import com.omkar.uni.verse.entities.user.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
@@ -21,7 +22,6 @@ import java.util.UUID;
                 @Index(name = "idx_events_status", columnList = "status"),
                 @Index(name = "idx_events_start_time", columnList = "start_time"),
                 @Index(name = "idx_events_category", columnList = "category"),
-                @Index(name = "idx_events_tags", columnList = "tags"),
                 @Index(name = "idx_events_created_at", columnList = "created_at"),
                 @Index(name = "idx_events_visibility", columnList = "visibility")
         }
@@ -63,7 +63,7 @@ public class Event {
     @Enumerated(EnumType.STRING)
     private VenueType type;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "venue_id", nullable = false)
     private Venue venue;
 
@@ -76,22 +76,24 @@ public class Event {
     private Integer capacity;
 
     @Enumerated(EnumType.STRING)
-    private EventRegistrationMode registrationMode;
+    private EventRegistrationMode registrationMode = EventRegistrationMode.AUTO_APPROVE;
 
     @Column(nullable = false)
     private LocalDateTime registrationDeadline;
 
     // Pricing
     @Builder.Default
+    @Column(nullable = false)
     private Boolean isPaid = false;
 
     @Builder.Default
-    private Double base_price = 0D;
+    private Double basePrice = 0D;
 
     // currency not required, targeted only for Indian Universities
 
     // Visibility & status
     @Builder.Default
+    @Enumerated(EnumType.STRING)
     private EventVisibility visibility = EventVisibility.PUBLIC;
 
     @Enumerated(EnumType.STRING)
@@ -110,6 +112,7 @@ public class Event {
     private String thumbnailUrl;
 
     // Categorization
+    @Enumerated(EnumType.STRING)
     private EventCategory category;
 
     @Column(name = "tags", columnDefinition = "text[]")
@@ -125,7 +128,7 @@ public class Event {
     // Timestamps
     @ManyToOne
     @JoinColumn(name = "created_by_user_id", nullable = false)
-    private User user;
+    private User createdBy;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)

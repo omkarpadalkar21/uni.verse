@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "clubs",
+        name = "club_followers",  // ✅ Fixed!
         indexes = {
                 @Index(name = "idx_club_followers_club_id", columnList = "club_id"),
                 @Index(name = "idx_club_followers_followed_at", columnList = "followed_at")
@@ -23,19 +23,21 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 public class ClubFollower {
-
     @EmbeddedId
     private ClubFollowerId id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("userId")
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("clubId")
     @JoinColumn(name = "club_id", nullable = false)
     private Club club;
 
     @CreatedDate
+    @Column(name = "followed_at", nullable = false, updatable = false)
     private LocalDateTime followedAt;
 
     public ClubFollower(User user, Club club) {
@@ -44,3 +46,4 @@ public class ClubFollower {
         this.club = club;
     }
 }
+
