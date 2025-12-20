@@ -30,19 +30,19 @@ public class ClubMember {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "club_id", nullable = false)
     private Club club;
 
-    @Column(length = 50, nullable = false)
+    @Column(length = 10, nullable = false)
     @Enumerated(EnumType.STRING)
     private ClubRole role;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "added_by_user_id")
     private User addedBy;
 

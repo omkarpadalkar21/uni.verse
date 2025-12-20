@@ -12,7 +12,7 @@ import java.util.UUID;
 @Table(
         name = "password_reset_token", indexes = {
         @Index(name = "idx_password_reset_user_id", columnList = "user_id"),
-        @Index(name = "idx_password_reset_expires_at", columnList = "expiresAt")
+        @Index(name = "idx_password_reset_expires_at", columnList = "expires_at")
 })
 @Getter
 @Setter
@@ -25,11 +25,11 @@ public class PasswordResetToken {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "token", length = 6)
+    @Column(name = "token", length = 6, nullable = false)
     private String token;
 
     @Column(name = "expires_at", nullable = false)

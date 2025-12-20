@@ -15,11 +15,12 @@ import java.util.UUID;
         name = "event_waitlist",
         uniqueConstraints = @UniqueConstraint(columnNames = {"event_id", "user_id"}),
         indexes = {
-                @Index(name = "idx_event_registrations_event_id", columnList = "event_id"),
-                @Index(name = "idx_event_registrations_user_id", columnList = "user_id"),
-                @Index(name = "idx_event_registrations_status", columnList = "status"),
-                @Index(name = "idx_event_registrations_registered_at", columnList = "registered_at")
+                @Index(name = "idx_event_waitlist_event_id", columnList = "event_id"),
+                @Index(name = "idx_event_waitlist_user_id", columnList = "user_id"),
+                @Index(name = "idx_event_waitlist_position", columnList = "position"),
+                @Index(name = "idx_event_waitlist_added_at", columnList = "added_at")
         }
+
 )
 @Getter
 @Setter
@@ -36,7 +37,7 @@ public class EventWaitlist {
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User userId;
 
@@ -44,9 +45,9 @@ public class EventWaitlist {
     private Integer position;
 
     @CreatedDate
-    @Column(nullable = false, updatable = false)
+    @Column(name = "added_at", nullable = false, updatable = false)
     private LocalDateTime addedAt;
 
-    @LastModifiedDate
+    @Column(name = "promoted_at")
     private LocalDateTime promotedAt;
 }

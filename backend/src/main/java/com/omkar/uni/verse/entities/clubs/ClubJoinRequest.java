@@ -40,6 +40,7 @@ public class ClubJoinRequest {
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
     private JoinRequestStatus status = JoinRequestStatus.PENDING;
 
     @Column(columnDefinition = "TEXT")
@@ -48,10 +49,11 @@ public class ClubJoinRequest {
     @Column(columnDefinition = "TEXT")
     private String rejectionReason;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewed_by_user_id")
     private User reviewedBy;
 
+    @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
     @CreatedDate

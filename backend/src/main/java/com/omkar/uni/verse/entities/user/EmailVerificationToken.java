@@ -25,11 +25,11 @@ public class EmailVerificationToken {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "otp", length = 6)
+    @Column(name = "otp", length = 6, nullable = false)
     private String otp;
 
     @Column(name = "expires_at", nullable = false)
@@ -38,7 +38,7 @@ public class EmailVerificationToken {
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;
 
-    @Column(name = "ip_address", length = 50)
+    @Column(length = 50)
     private String ipAddress;
 
     @CreatedDate
