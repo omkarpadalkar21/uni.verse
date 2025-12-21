@@ -3,19 +3,19 @@ package com.omkar.uni.verse.entities.user;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.Formula;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Entity
@@ -27,10 +27,11 @@ import java.util.stream.Collectors;
 })
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-public class User {
+public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -85,9 +86,6 @@ public class User {
     @Column(name = "suspended_at")
     private LocalDateTime suspendedAt;
 
-    @Column(name = "suspended_by_user_id", columnDefinition = "uuid")
-    private UUID suspendedByUserId;
-
     // Profile
     @Column(length = 20, nullable = false)
     private String phone;
@@ -115,7 +113,7 @@ public class User {
     @JoinColumn(name = "suspended_by_user_id", referencedColumnName = "id", insertable = false, updatable = false)
     private User suspendedBy;
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
     private Set<UserRole> userRoles = new HashSet<>();
 
     @Transient
@@ -129,5 +127,34 @@ public class User {
     public boolean hasRole(RoleName roleName) {
         return userRoles.stream()
                 .anyMatch(userRole -> userRole.getRole().getName() == roleName);
+    }
+
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        // Spring Security expects authorities prefixed with ROLE_ for role-based security to work with hasRole() and @PreAuthorize("hasRole('USER')").
+        return userRoles.stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getRole().getName().toString()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return !(accountStatus == AccountStatus.DELETED);
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return !(accountStatus == AccountStatus.SUSPENDED);
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return accountStatus == AccountStatus.ACTIVE && emailVerified;
     }
 }
