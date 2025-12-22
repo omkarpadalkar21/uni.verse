@@ -1,6 +1,6 @@
 package com.omkar.uni.verse.controller;
 
-import com.omkar.uni.verse.domain.dto.ErrorResponse;
+import com.omkar.uni.verse.domain.dto.ErrorResponseDto;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -20,36 +20,36 @@ import java.security.SignatureException;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ExpiredJwtException.class)
-    public ResponseEntity<ErrorResponse> handleExpiredJwt(ExpiredJwtException e) {
+    public ResponseEntity<ErrorResponseDto> handleExpiredJwt(ExpiredJwtException e) {
         log.warn("JWT expired: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new ErrorResponse("Token expired", "JWT-001"));
+                .body(new ErrorResponseDto("Token expired", "JWT-001"));
     }
 
     @ExceptionHandler({MalformedJwtException.class, SignatureException.class})
-    public ResponseEntity<ErrorResponse> handleInvalidJwt(Exception e) {
+    public ResponseEntity<ErrorResponseDto> handleInvalidJwt(Exception e) {
         log.warn("Invalid JWT: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new ErrorResponse("Invalid token", "JWT-002"));
+                .body(new ErrorResponseDto("Invalid token", "JWT-002"));
     }
 
     @ExceptionHandler(JwtException.class)
-    public ResponseEntity<ErrorResponse> handleJwtException(JwtException e) {
+    public ResponseEntity<ErrorResponseDto> handleJwtException(JwtException e) {
         log.warn("JWT error: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new ErrorResponse("Token validation failed", "JWT-003"));
+                .body(new ErrorResponseDto("Token validation failed", "JWT-003"));
     }
 
     // Handle UserDetailsService exceptions (user not found, etc.)
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUserNotFound(UsernameNotFoundException e) {
+    public ResponseEntity<ErrorResponseDto> handleUserNotFound(UsernameNotFoundException e) {
         log.warn("User not found: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new ErrorResponse("User not found", "AUTH-001"));
+                .body(new ErrorResponseDto("User not found", "AUTH-001"));
     }
 }
 

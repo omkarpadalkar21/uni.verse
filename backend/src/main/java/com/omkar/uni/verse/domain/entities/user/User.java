@@ -41,11 +41,11 @@ public class User implements UserDetails {
 
     // Name fields
     @Size(min = 2, max = 125, message = "First name must be between {min} and {max} characters")
-    @Column(name = "first_name", nullable = false, length = 125)
+    @Column(name = "first_name", length = 125)
     private String firstName;
 
     @Size(min = 2, max = 125, message = "Last name must be between {min} and {max} characters")
-    @Column(name = "last_name", nullable = false, length = 125)
+    @Column(name = "last_name", length = 125)
     private String lastName;
 
     @Formula("(TRIM(first_name || ' ' || last_name))")
@@ -63,13 +63,14 @@ public class User implements UserDetails {
     private String password;
 
     // University
-    @Column(name = "university_id", length = 100, nullable = false)
+    @Column(name = "university_id", length = 25, nullable = false)
     private String universityId;
 
     @Column(name = "university_email_domain", length = 100, nullable = false)
     private String universityEmailDomain;
 
     // Verification
+    @Builder.Default
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
 
@@ -78,6 +79,7 @@ public class User implements UserDetails {
 
     // Account status
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     @Column(name = "account_status", length = 20, nullable = false)
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
 
