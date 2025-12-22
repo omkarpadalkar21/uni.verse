@@ -22,8 +22,8 @@ import java.util.*;
         name = "clubs",
         indexes = {
                 @Index(name = "idx_clubs_slug", columnList = "slug"),
-                @Index(name = "idx_clubs_status", columnList = "status"),
-                @Index(name = "idx_clubs_category", columnList = "category"),
+                @Index(name = "idx_clubs_status", columnList = "club_status"),
+                @Index(name = "idx_clubs_category", columnList = "club_category"),
                 @Index(name = "idx_clubs_created_by", columnList = "created_by_user_id"),
                 @Index(name = "idx_clubs_created_at", columnList = "created_at")
         }
