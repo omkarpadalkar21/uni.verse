@@ -2,13 +2,22 @@ package com.omkar.uni.verse.services;
 
 import com.omkar.uni.verse.domain.dto.AuthenticationResponse;
 import com.omkar.uni.verse.domain.dto.RegistrationRequest;
+import com.omkar.uni.verse.domain.entities.user.EmailVerificationToken;
 import com.omkar.uni.verse.domain.entities.user.RoleName;
 import com.omkar.uni.verse.domain.entities.user.User;
+import com.omkar.uni.verse.repository.EmailVerificationTokenRepository;
 import com.omkar.uni.verse.repository.RoleRepository;
 import com.omkar.uni.verse.repository.UserRepository;
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+
+import static org.springframework.security.crypto.keygen.KeyGenerators.secureRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -17,9 +26,15 @@ public class AuthenticationService {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final EmailVerificationTokenRepository tokenRepository;
 
-    public AuthenticationResponse register(RegistrationRequest registrationRequest) {
+    private final JwtService jwtService;
+    private final EmailService emailService;
+
+    @Value("${spring.mail.username}")
+    private String platformMailId;
+
+    public AuthenticationResponse register(RegistrationRequest registrationRequest) throws MessagingException {
         var userRole = roleRepository.findByName(RoleName.USER).orElseThrow(() -> new IllegalStateException("Role USER was not initialized"));
 
         User newUser = User.builder()
@@ -42,6 +57,35 @@ public class AuthenticationService {
                 .build();
     }
 
-    private void sendVerificationEmail(User newUser) {
+    private void sendVerificationEmail(User user) throws MessagingException {
+        String newToken = generateAndSaveActivationToken(user);
+        emailService.sendVerificationEmail(
+                platformMailId,
+                user.getEmail(),
+                "OTP Verification from UniVerse",
+                newToken
+        );
+    }
+
+    private String generateAndSaveActivationToken(User user) {
+        String generatedToken = generateActivationCode(6);
+        var token = EmailVerificationToken.builder()
+                .user(user)
+                .otp(generatedToken)
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .build();
+        tokenRepository.save(token);
+        return generatedToken;
+    }
+
+    private String generateActivationCode(int length) {
+        String characters = "0123456789";
+        StringBuilder codeBuilder = new StringBuilder();
+        SecureRandom secureRandom = new SecureRandom();
+        for (int i = 0; i < length; i++) {
+            int index = secureRandom.nextInt(characters.length());
+            codeBuilder.append(characters.charAt(index));
+        }
+        return codeBuilder.toString();
     }
 }
