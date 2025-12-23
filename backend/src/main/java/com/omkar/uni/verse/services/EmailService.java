@@ -42,7 +42,7 @@ public class EmailService {
 
             Map<String, Object> properties = new HashMap<>();
             // Prevents XSS via validating otp
-            if (!otp.matches("^[0-9A-Z]{6,8}$")) {
+            if (!otp.matches("^[0-9A-Z]{8}$")) {
                 throw new IllegalArgumentException("Invalid OTP format");
             }
             properties.put("otp", otp);
