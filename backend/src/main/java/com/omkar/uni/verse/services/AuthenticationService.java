@@ -1,9 +1,6 @@
 package com.omkar.uni.verse.services;
 
-import com.omkar.uni.verse.domain.dto.AuthenticationResponse;
-import com.omkar.uni.verse.domain.dto.RegistrationRequest;
-import com.omkar.uni.verse.domain.dto.RegistrationResponse;
-import com.omkar.uni.verse.domain.dto.VerifyEmailRequest;
+import com.omkar.uni.verse.domain.dto.*;
 import com.omkar.uni.verse.domain.entities.user.EmailVerificationToken;
 import com.omkar.uni.verse.domain.entities.user.RoleName;
 import com.omkar.uni.verse.domain.entities.user.User;
@@ -15,6 +12,9 @@ import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -37,6 +37,7 @@ public class AuthenticationService {
 
     private final JwtService jwtService;
     private final EmailService emailService;
+    private final AuthenticationManager authenticationManager;
 
     @Value("${spring.mail.username}")
     private String platformMailId;
@@ -103,6 +104,24 @@ public class AuthenticationService {
         return AuthenticationResponse.builder()
                 .refreshToken(newRefreshToken)
                 .accessToken(newAccessToken)
+                .build();
+    }
+
+    public AuthenticationResponse login(LoginRequest request) {
+        var auth = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                request.getEmail(),
+                request.getPassword()
+        ));
+
+        User user = (User) auth.getPrincipal();
+        user.setLastLoginAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        String newAccessToken = jwtService.generateAccessToken(user);
+        String newRefreshToken = jwtService.generateRefreshToken(user);
+        return AuthenticationResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
                 .build();
     }
 
