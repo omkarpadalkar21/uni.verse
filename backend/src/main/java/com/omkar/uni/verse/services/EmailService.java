@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -21,6 +22,7 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
 
+    @Async
     public String sendVerificationEmail(
             String from,
             String to,
@@ -39,6 +41,10 @@ public class EmailService {
             messageHelper.setSubject(subject);
 
             Map<String, Object> properties = new HashMap<>();
+            // Prevents XSS via validating otp
+            if (!otp.matches("^[0-9A-Z]{6,8}$")) {
+                throw new IllegalArgumentException("Invalid OTP format");
+            }
             properties.put("otp", otp);
 
             Context context = new Context();

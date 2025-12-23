@@ -2,13 +2,16 @@ package com.omkar.uni.verse.services;
 
 import com.omkar.uni.verse.domain.dto.AuthenticationResponse;
 import com.omkar.uni.verse.domain.dto.RegistrationRequest;
+import com.omkar.uni.verse.domain.dto.RegistrationResponse;
 import com.omkar.uni.verse.domain.entities.user.EmailVerificationToken;
 import com.omkar.uni.verse.domain.entities.user.RoleName;
 import com.omkar.uni.verse.domain.entities.user.User;
+import com.omkar.uni.verse.domain.entities.user.UserRole;
 import com.omkar.uni.verse.repository.EmailVerificationTokenRepository;
 import com.omkar.uni.verse.repository.RoleRepository;
 import com.omkar.uni.verse.repository.UserRepository;
 import jakarta.mail.MessagingException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.springframework.security.crypto.keygen.KeyGenerators.secureRandom;
 
@@ -34,7 +38,19 @@ public class AuthenticationService {
     @Value("${spring.mail.username}")
     private String platformMailId;
 
-    public AuthenticationResponse register(RegistrationRequest registrationRequest) throws MessagingException {
+    @Transactional
+    public RegistrationResponse register(RegistrationRequest registrationRequest) throws MessagingException {
+        if (userRepository.findByEmail(registrationRequest.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email already exists.");
+        }
+
+        String email = registrationRequest.getEmail();
+        String expectedDomain = "@muj.manipal.edu";
+
+        if (!email.endsWith(expectedDomain)) {
+            throw new IllegalArgumentException("Only MUJ email addresses are allowed");
+        }
+
         var userRole = roleRepository.findByName(RoleName.USER).orElseThrow(() -> new IllegalStateException("Role USER was not initialized"));
 
         User newUser = User.builder()
@@ -46,18 +62,24 @@ public class AuthenticationService {
                 // first name and last name are null, update them later
                 .build();
 
+        UserRole userRoleAssociation = new UserRole(newUser, userRole);
+        newUser.getUserRoles().add(userRoleAssociation);
         userRepository.save(newUser);
-        sendVerificationEmail(newUser);
-        String newAccessToken = jwtService.generateAccessToken(newUser);
-        String newRefreshToken = jwtService.generateRefreshToken(newUser);
 
-        return AuthenticationResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
+        return RegistrationResponse.builder()
+                .message("Registration successful. Please verify your email")
+                .email(newUser.getEmail())
                 .build();
     }
 
-    private void sendVerificationEmail(User user) throws MessagingException {
+
+    private void sendVerificationEmail(User user) throws MessagingException, IllegalStateException {
+        Optional<EmailVerificationToken> recentToken = tokenRepository.findTopByUserOrderByCreatedAtDesc(user);
+
+        // Check if the user has recently generated a token preventing spam requests
+        if (recentToken.isPresent() && recentToken.get().getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(2))) {
+            throw new IllegalStateException("Please wait before requesting a new OTP");
+        }
         String newToken = generateAndSaveActivationToken(user);
         emailService.sendVerificationEmail(
                 platformMailId,
@@ -68,7 +90,7 @@ public class AuthenticationService {
     }
 
     private String generateAndSaveActivationToken(User user) {
-        String generatedToken = generateActivationCode(6);
+        String generatedToken = generateActivationCode(8);
         var token = EmailVerificationToken.builder()
                 .user(user)
                 .otp(generatedToken)
@@ -79,13 +101,12 @@ public class AuthenticationService {
     }
 
     private String generateActivationCode(int length) {
-        String characters = "0123456789";
-        StringBuilder codeBuilder = new StringBuilder();
+        String characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";  // ✅ Alphanumeric
         SecureRandom secureRandom = new SecureRandom();
-        for (int i = 0; i < length; i++) {
-            int index = secureRandom.nextInt(characters.length());
-            codeBuilder.append(characters.charAt(index));
-        }
-        return codeBuilder.toString();
+
+        return secureRandom.ints(length, 0, characters.length())
+                .mapToObj(characters::charAt)
+                .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+                .toString();
     }
 }
