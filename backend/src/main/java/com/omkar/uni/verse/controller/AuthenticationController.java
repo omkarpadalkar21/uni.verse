@@ -6,13 +6,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("auth")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 @Tag(name = "Authentication")
 public class AuthenticationController {
@@ -22,11 +21,14 @@ public class AuthenticationController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ResponseEntity<RegistrationResponse> register(@RequestBody @Valid RegistrationRequest registrationRequest) throws MessagingException {
-        authenticationService.register(registrationRequest);
-        return new ResponseEntity<>(
-                authenticationService.register(registrationRequest),
-                HttpStatus.ACCEPTED
-        );
+        // Register user (transactional - commits to DB)
+        RegistrationResponse response = authenticationService.register(registrationRequest);
+        
+        // Send verification email AFTER transaction commits
+        // If email fails, user is still registered
+        authenticationService.sendVerificationEmail(registrationRequest.getEmail());
+        
+        return new ResponseEntity<>(response, HttpStatus.ACCEPTED);
     }
 
     @PostMapping("/login")

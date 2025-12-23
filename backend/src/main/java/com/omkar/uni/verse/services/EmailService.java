@@ -14,6 +14,7 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +24,7 @@ public class EmailService {
     private final SpringTemplateEngine templateEngine;
 
     @Async
-    public String sendVerificationEmail(
+    public CompletableFuture<String> sendVerificationEmail(
             String from,
             String to,
             String subject,
@@ -52,10 +53,13 @@ public class EmailService {
             String template = templateEngine.process("otp-verification", context);
             messageHelper.setText(template, true);
             mailSender.send(message);
-            return "Success";
-        } catch (MessagingException me) {
-            log.error("Error sending verification email, error: {}", me.getMessage());
-            return "Error";
+            log.info("✅ Email sent successfully to: {}", to);
+            return CompletableFuture.completedFuture("Success");
+        } catch (Exception e) {
+            log.error("❌ Failed to send verification email to: {}. Error: {}", to, e.getMessage(), e);
+            log.error("   Error type: {}", e.getClass().getSimpleName());
+            log.error("   Check: 1) Gmail App Password configured? 2) MAIL_ID and MAIL_PASSWORD set? 3) Spam folder?");
+            return CompletableFuture.completedFuture("Error");
         }
     }
 }

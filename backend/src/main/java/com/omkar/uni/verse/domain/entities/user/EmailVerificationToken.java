@@ -29,7 +29,7 @@ public class EmailVerificationToken {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "otp", length = 6, nullable = false)
+    @Column(name = "otp", length = 8, nullable = false)
     private String otp;
 
     @Column(name = "expires_at", nullable = false)
