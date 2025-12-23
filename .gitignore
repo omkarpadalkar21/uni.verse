@@ -1,2 +1,12 @@
 /backend/.env
 /backend/.idea
+.idea/.gitignore
+.idea/copilot.data.migration.agent.xml
+.idea/copilot.data.migration.ask.xml
+.idea/copilot.data.migration.ask2agent.xml
+.idea/copilot.data.migration.edit.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/uni.verse.iml
+.idea/vcs.xml
+frontend/pnpm-lock.yaml
