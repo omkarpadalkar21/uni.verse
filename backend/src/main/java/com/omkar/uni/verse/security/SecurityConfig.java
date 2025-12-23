@@ -28,12 +28,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req -> req.requestMatchers(
-                                        "/api/auth/register",
-                                        "/api/auth/login",
-                                        "/api/auth/verify-email",
-                                        "/api/auth/forgot-password",
-                                        "/api/auth/reset-password",
-                                        "/api/auth/refresh-token",
+                                        "/api/v1/auth/**",
                                         "/swagger-ui/**",
                                         "/v3/api-docs/**"
                                 ).permitAll()

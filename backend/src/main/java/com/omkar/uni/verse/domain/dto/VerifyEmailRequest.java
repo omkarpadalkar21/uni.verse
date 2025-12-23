@@ -15,7 +15,7 @@ public class VerifyEmailRequest {
     private String email;
 
     @NotBlank(message = "OTP is required")
-    @Pattern(regexp = "^[0-9]{8}$", message = "OTP must be 8 digits")
+    @Pattern(regexp = "^[0-9A-Z]{8}$", message = "OTP must be 8 alphanumeric characters")
     private String otp;
 }
 

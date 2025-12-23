@@ -1,6 +1,21 @@
 package com.omkar.uni.verse.services;
 
-import com.omkar.uni.verse.domain.dto.*;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.omkar.uni.verse.domain.dto.AuthenticationResponse;
+import com.omkar.uni.verse.domain.dto.LoginRequest;
+import com.omkar.uni.verse.domain.dto.RegistrationRequest;
+import com.omkar.uni.verse.domain.dto.RegistrationResponse;
+import com.omkar.uni.verse.domain.dto.VerifyEmailRequest;
 import com.omkar.uni.verse.domain.entities.user.EmailVerificationToken;
 import com.omkar.uni.verse.domain.entities.user.RoleName;
 import com.omkar.uni.verse.domain.entities.user.User;
@@ -8,23 +23,10 @@ import com.omkar.uni.verse.domain.entities.user.UserRole;
 import com.omkar.uni.verse.repository.EmailVerificationTokenRepository;
 import com.omkar.uni.verse.repository.RoleRepository;
 import com.omkar.uni.verse.repository.UserRepository;
+
 import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.Optional;
-
-import static org.springframework.security.crypto.keygen.KeyGenerators.secureRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -123,6 +125,12 @@ public class AuthenticationService {
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
                 .build();
+    }
+
+    public void sendVerificationEmail(String email) throws MessagingException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        sendVerificationEmail(user);
     }
 
     private void sendVerificationEmail(User user) throws MessagingException, IllegalStateException {
