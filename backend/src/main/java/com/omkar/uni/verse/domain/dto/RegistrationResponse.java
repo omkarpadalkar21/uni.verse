@@ -8,7 +8,6 @@ import lombok.Setter;
 @Setter
 @Builder
 public class RegistrationResponse {
-
     private String message;
     private String email;
 }
