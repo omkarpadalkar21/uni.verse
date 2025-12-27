@@ -50,7 +50,7 @@ public class EmailTest {
         helper.setTo("omkarpadalkar21@gmail.com");
         helper.setSubject("Mail with attachment from UniVerse");
         helper.setText(
-                new String(Objects.requireNonNull(EmailTest.class.getResourceAsStream("/templates/otp-verification.html")).readAllBytes(), StandardCharsets.UTF_8),
+                new String(Objects.requireNonNull(EmailTest.class.getResourceAsStream("/templates/verify_account.html")).readAllBytes(), StandardCharsets.UTF_8),
                 true
         );
         javaMailSender.send(message);

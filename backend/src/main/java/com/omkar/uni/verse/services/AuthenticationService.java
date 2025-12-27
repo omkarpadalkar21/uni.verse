@@ -4,6 +4,9 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import com.omkar.uni.verse.domain.dto.*;
+import com.omkar.uni.verse.domain.entities.user.*;
+import com.omkar.uni.verse.repository.PasswordResetTokenRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -11,15 +14,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.omkar.uni.verse.domain.dto.AuthenticationResponse;
-import com.omkar.uni.verse.domain.dto.LoginRequest;
-import com.omkar.uni.verse.domain.dto.RegistrationRequest;
-import com.omkar.uni.verse.domain.dto.RegistrationResponse;
-import com.omkar.uni.verse.domain.dto.VerifyEmailRequest;
-import com.omkar.uni.verse.domain.entities.user.EmailVerificationToken;
-import com.omkar.uni.verse.domain.entities.user.RoleName;
-import com.omkar.uni.verse.domain.entities.user.User;
-import com.omkar.uni.verse.domain.entities.user.UserRole;
 import com.omkar.uni.verse.repository.EmailVerificationTokenRepository;
 import com.omkar.uni.verse.repository.RoleRepository;
 import com.omkar.uni.verse.repository.UserRepository;
@@ -35,11 +29,12 @@ public class AuthenticationService {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EmailVerificationTokenRepository tokenRepository;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
 
     private final JwtService jwtService;
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Value("${spring.mail.username}")
     private String platformMailId;
@@ -83,7 +78,7 @@ public class AuthenticationService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        EmailVerificationToken token = tokenRepository.findByUserAndOtp(user, request.getOtp())
+        EmailVerificationToken token = emailVerificationTokenRepository.findByUserAndOtp(user, request.getOtp())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid OTP"));
 
         if (token.getVerifiedAt() != null) {
@@ -95,7 +90,7 @@ public class AuthenticationService {
         }
 
         token.setVerifiedAt(LocalDateTime.now());
-        tokenRepository.save(token);
+        emailVerificationTokenRepository.save(token);
 
         user.setEmailVerified(true);
         user.setEmailVerifiedAt(LocalDateTime.now());
@@ -127,6 +122,32 @@ public class AuthenticationService {
                 .build();
     }
 
+    public void sendPasswordResetEmail(ForgotPasswordRequest request) throws MessagingException {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        String token = generateAndSavePasswordResetToken(user);
+        emailService.sendEmail(
+                platformMailId,
+                user.getEmail(),
+                "Reset Password for UniVerse",
+                token,
+                EmailTemplateName.FORGOT_PASSWORD
+        );
+    }
+
+    private String generateAndSavePasswordResetToken(User user) {
+        String generatedToken = generateToken(8);
+        var token = PasswordResetToken.builder()
+                .user(user)
+                .token(generatedToken)
+                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .usedAt(LocalDateTime.now())
+                .build();
+        passwordResetTokenRepository.save(token);
+        return generatedToken;
+    }
+
     public void sendVerificationEmail(String email) throws MessagingException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -134,34 +155,35 @@ public class AuthenticationService {
     }
 
     private void sendVerificationEmail(User user) throws MessagingException, IllegalStateException {
-        Optional<EmailVerificationToken> recentToken = tokenRepository.findTopByUserOrderByCreatedAtDesc(user);
+        Optional<EmailVerificationToken> recentToken = emailVerificationTokenRepository.findTopByUserOrderByCreatedAtDesc(user);
 
         // Check if the user has recently generated a token preventing spam requests
         if (recentToken.isPresent() && recentToken.get().getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(2))) {
             throw new IllegalStateException("Please wait before requesting a new OTP");
         }
         String newToken = generateAndSaveActivationToken(user);
-        emailService.sendVerificationEmail(
+        emailService.sendEmail(
                 platformMailId,
                 user.getEmail(),
                 "OTP Verification from UniVerse",
-                newToken
+                newToken,
+                EmailTemplateName.VERIFY_ACCOUNT
         );
     }
 
     private String generateAndSaveActivationToken(User user) {
-        String generatedToken = generateActivationCode(8);
+        String generatedToken = generateToken(8);
         var token = EmailVerificationToken.builder()
                 .user(user)
                 .otp(generatedToken)
                 .expiresAt(LocalDateTime.now().plusMinutes(10))
                 .build();
-        tokenRepository.save(token);
+        emailVerificationTokenRepository.save(token);
         return generatedToken;
     }
 
-    private String generateActivationCode(int length) {
-        String characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";  // ✅ Alphanumeric
+    private String generateToken(int length) {
+        String characters = "0123456789";  // ✅ Alphanumeric
         SecureRandom secureRandom = new SecureRandom();
 
         return secureRandom.ints(length, 0, characters.length())
