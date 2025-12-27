@@ -1,5 +1,8 @@
 package com.omkar.uni.verse.services;
 
+import com.omkar.uni.verse.domain.entities.user.RefreshToken;
+import com.omkar.uni.verse.domain.entities.user.User;
+import com.omkar.uni.verse.repository.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -10,12 +13,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
+    private final RefreshTokenRepository refreshTokenRepository;
+
     @Value("${jwt.secret.key}")
     private String jwtSecretKey;
 
@@ -24,6 +31,10 @@ public class JwtService {
 
     @Value("${jwt.refresh-key.expiration}")
     private Long refreshKeyExpiration;
+
+    public JwtService(RefreshTokenRepository refreshTokenRepository) {
+        this.refreshTokenRepository = refreshTokenRepository;
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -50,8 +61,20 @@ public class JwtService {
         return buildToken(extraClaims, userDetails, accessKeyExpiration);
     }
 
-    public String generateRefreshToken(UserDetails userDetails) {
-        return buildToken(new HashMap<>(), userDetails, refreshKeyExpiration);
+    public String generateRefreshToken(UserDetails userDetails, String ipAddress, String userAgent) {
+        String token = buildToken(new HashMap<>(), userDetails, refreshKeyExpiration);
+
+        // Save to database for revocation support
+        RefreshToken refreshToken = RefreshToken.builder()
+                .user((User) userDetails)
+                .token(token)
+                .expiresAt(LocalDateTime.now().plus(Duration.ofMillis(refreshKeyExpiration)))
+                .ipAddress(ipAddress)
+                .userAgent(userAgent)
+                .build();
+
+        refreshTokenRepository.save(refreshToken);
+        return token;
     }
 
     private String buildToken(HashMap<String, Object> extraClaims,

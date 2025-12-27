@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,14 +33,17 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "400", description = "Invalid registration data"),
             @ApiResponse(responseCode = "409", description = "Email already exists")
     })
-    public ResponseEntity<RegistrationResponse> register(@RequestBody @Valid RegistrationRequest registrationRequest) throws MessagingException {
+    public ResponseEntity<RegistrationResponse> register(
+            @RequestBody @Valid RegistrationRequest registrationRequest,
+            HttpServletRequest httpServletRequest
+    ) throws MessagingException {
         log.info("Registration request received for email: {}", registrationRequest.getEmail());
         // Register user (transactional - commits to DB)
         RegistrationResponse response = authenticationService.register(registrationRequest);
 
         // Send verification email AFTER transaction commits
         // If email fails, user is still registered
-        authenticationService.sendVerificationEmail(registrationRequest.getEmail());
+        authenticationService.sendVerificationEmail(registrationRequest.getEmail(), httpServletRequest.getRemoteAddr());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -52,11 +56,12 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "403", description = "Account not verified")
     })
     public ResponseEntity<AuthenticationResponse> login(
-            @RequestBody @Valid LoginRequest loginRequest
+            @RequestBody @Valid LoginRequest loginRequest,
+            HttpServletRequest httpServletRequest
     ) {
         log.info("Login request received for email: {}", loginRequest.getEmail());
 
-        AuthenticationResponse response = authenticationService.login(loginRequest);
+        AuthenticationResponse response = authenticationService.login(loginRequest, httpServletRequest.getRemoteAddr(), httpServletRequest.getHeader("User-Agent"));
 
         return ResponseEntity.ok(response);
     }
@@ -69,11 +74,12 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "404", description = "User not found")
     })
     public ResponseEntity<AuthenticationResponse> verifyEmail(
-            @RequestBody @Valid VerifyEmailRequest verifyEmailRequest
+            @RequestBody @Valid VerifyEmailRequest verifyEmailRequest,
+            HttpServletRequest httpServletRequest
     ) {
         log.info("Email verification request received for: {}", verifyEmailRequest.getEmail());
 
-        AuthenticationResponse response = authenticationService.verifyEmail(verifyEmailRequest);
+        AuthenticationResponse response = authenticationService.verifyEmail(verifyEmailRequest, httpServletRequest.getRemoteAddr(), httpServletRequest.getHeader("User-Agent"));
 
         return ResponseEntity.ok(response);
     }
@@ -86,11 +92,12 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
     public ResponseEntity<MessageResponse> resendVerification(
-            @RequestBody @Valid ResendVerificationRequest request
+            @RequestBody @Valid ResendVerificationRequest request,
+            HttpServletRequest httpServletRequest
     ) throws MessagingException {
         log.info("Resend verification request for: {}", request.email());
 
-        authenticationService.sendVerificationEmail(request.email());
+        authenticationService.sendVerificationEmail(request.email(), httpServletRequest.getRemoteAddr());
 
         return ResponseEntity.ok(new MessageResponse("Verification email sent successfully"));
     }
@@ -102,11 +109,12 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
     public ResponseEntity<MessageResponse> forgotPassword(
-            @RequestBody @Valid ForgotPasswordRequest forgotPasswordRequest
+            @RequestBody @Valid ForgotPasswordRequest forgotPasswordRequest,
+            HttpServletRequest httpServletRequest
     ) throws MessagingException {
         log.info("Forgot password request received for: {}", forgotPasswordRequest.getEmail());
 
-        authenticationService.sendPasswordResetEmail(forgotPasswordRequest);
+        authenticationService.sendPasswordResetEmail(forgotPasswordRequest, httpServletRequest.getRemoteAddr());
 
         // Generic message to prevent email enumeration
         return ResponseEntity.ok(

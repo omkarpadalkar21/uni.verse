@@ -16,6 +16,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -88,7 +89,7 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public AuthenticationResponse verifyEmail(VerifyEmailRequest request) {
+    public AuthenticationResponse verifyEmail(VerifyEmailRequest request, String ipAddress, String userAgent) {
         log.info("Email verification attempt for: {}", request.getEmail());
 
         User user = userRepository.findByEmail(request.getEmail())
@@ -128,8 +129,8 @@ public class AuthenticationService {
 
         log.info("Email verified successfully for user: {}", user.getEmail());
 
-        String newRefreshToken = jwtService.generateRefreshToken(user);
         String newAccessToken = jwtService.generateAccessToken(user);
+        String newRefreshToken = jwtService.generateRefreshToken(user, ipAddress, userAgent);
 
         return AuthenticationResponse.builder()
                 .refreshToken(newRefreshToken)
@@ -137,7 +138,7 @@ public class AuthenticationService {
                 .build();
     }
 
-    public AuthenticationResponse login(LoginRequest request) {
+    public AuthenticationResponse login(LoginRequest request, String ipAddress, String userAgent) {
         log.info("Login attempt for email: {}", request.getEmail());
 
         var auth = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
@@ -152,7 +153,7 @@ public class AuthenticationService {
         log.info("User logged in successfully: {}", user.getEmail());
 
         String newAccessToken = jwtService.generateAccessToken(user);
-        String newRefreshToken = jwtService.generateRefreshToken(user);
+        String newRefreshToken = jwtService.generateRefreshToken(user, ipAddress, userAgent);
 
         return AuthenticationResponse.builder()
                 .accessToken(newAccessToken)
@@ -161,7 +162,7 @@ public class AuthenticationService {
     }
 
     // STEP 1: Request password reset (forgot password)
-    public void sendPasswordResetEmail(ForgotPasswordRequest request) throws MessagingException {
+    public void sendPasswordResetEmail(ForgotPasswordRequest request, String ipAddress) throws MessagingException {
         log.info("Password reset request for email: {}", request.getEmail());
 
         // Generic response to prevent email enumeration
@@ -176,7 +177,7 @@ public class AuthenticationService {
         User user = userOpt.get();
 
         // Send password reset email (includes rate limiting)
-        sendEmail(user, EmailTemplateName.FORGOT_PASSWORD);
+        sendEmail(user, EmailTemplateName.FORGOT_PASSWORD, ipAddress);
 
         log.info("Password reset email sent to: {}", user.getEmail());
     }
@@ -226,19 +227,19 @@ public class AuthenticationService {
         // This requires JWT blacklisting or token versioning implementation
     }
 
-    public void sendVerificationEmail(String email) throws MessagingException {
-        log.info("Resend verification email request for: {}", email);
+    public void sendVerificationEmail(String email, String ipAddress) throws MessagingException {
+        log.info("Send verification email request for: {}", email);
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    log.error("Resend verification failed - user not found: {}", email);
+                    log.error("Send verification failed - user not found: {}", email);
                     return new UsernameNotFoundException("User not found");
                 });
 
-        sendEmail(user, EmailTemplateName.VERIFY_ACCOUNT);
+        sendEmail(user, EmailTemplateName.VERIFY_ACCOUNT, ipAddress);
     }
 
-    private void sendEmail(User user, EmailTemplateName templateName) throws MessagingException, IllegalStateException {
+    private void sendEmail(User user, EmailTemplateName templateName, String ipAddress) throws MessagingException, IllegalStateException {
         log.debug("Preparing to send {} email to: {}", templateName, user.getEmail());
 
         // Check rate limiting BEFORE doing any other operations
@@ -251,7 +252,7 @@ public class AuthenticationService {
         // Invalidate previous tokens
         invalidatePreviousTokens(user, tokenType);
 
-        String plainTextToken = generateAndSaveToken(user, tokenType);
+        String plainTextToken = generateAndSaveToken(user, tokenType, ipAddress);
 
         String emailSubject = templateName == EmailTemplateName.VERIFY_ACCOUNT
                 ? "OTP Verification from UniVerse"
@@ -292,7 +293,7 @@ public class AuthenticationService {
         }
     }
 
-    private String generateAndSaveToken(User user, TokenType type) {
+    private String generateAndSaveToken(User user, TokenType type, String ipAddress) {
         log.debug("Generating {} token for user: {}", type, user.getEmail());
 
         String plainTextToken = generateToken(8);
@@ -304,6 +305,7 @@ public class AuthenticationService {
                         .user(user)
                         .otp(hashedToken)
                         .expiresAt(LocalDateTime.now().plusMinutes(10))
+                        .ipAddress(ipAddress)
                         .build();
                 emailVerificationTokenRepository.save(token);
                 log.debug("Email verification token created for user: {}", user.getEmail());
@@ -313,6 +315,7 @@ public class AuthenticationService {
                         .user(user)
                         .token(hashedToken)
                         .expiresAt(LocalDateTime.now().plusMinutes(5))
+                        .ipAddress(ipAddress)
                         .usedAt(null)
                         .build();
                 passwordResetTokenRepository.save(token);
