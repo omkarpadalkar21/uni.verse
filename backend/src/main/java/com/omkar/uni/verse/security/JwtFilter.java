@@ -1,6 +1,7 @@
 package com.omkar.uni.verse.security;
 
 import com.omkar.uni.verse.services.JwtService;
+import com.omkar.uni.verse.services.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +26,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final UserDetailsService userDetailsService;
     private final JwtService jwtService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -42,6 +44,12 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             String jwt = authHeader.substring(7);
             String userEmail = jwtService.extractUsername(jwt);
+
+            if (tokenBlacklistService.isBlacklisted(jwt)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Token has been revoked");
+                return;
+            }
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);

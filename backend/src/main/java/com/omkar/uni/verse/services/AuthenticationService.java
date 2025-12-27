@@ -2,14 +2,12 @@ package com.omkar.uni.verse.services;
 
 import com.omkar.uni.verse.domain.dto.*;
 import com.omkar.uni.verse.domain.entities.user.*;
-import com.omkar.uni.verse.repository.EmailVerificationTokenRepository;
-import com.omkar.uni.verse.repository.PasswordResetTokenRepository;
-import com.omkar.uni.verse.repository.RoleRepository;
-import com.omkar.uni.verse.repository.UserRepository;
+import com.omkar.uni.verse.repository.*;
 import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.discoverer.SpringDocParameterNameDiscoverer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,6 +20,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HexFormat;
 import java.util.Optional;
 
@@ -38,6 +37,9 @@ public class AuthenticationService {
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final SpringDocParameterNameDiscoverer localSpringDocParameterNameDiscoverer;
 
     @Value("${spring.mail.username}")
     private String platformMailId;
@@ -227,6 +229,24 @@ public class AuthenticationService {
         // This requires JWT blacklisting or token versioning implementation
     }
 
+    @Transactional
+    public AuthenticationResponse refreshAccessToken(String refreshToken) {
+        if (!jwtService.isRefreshTokenValid(refreshToken)) {
+            throw new IllegalArgumentException("Invalid or expired refresh token");
+        }
+
+        String username = jwtService.extractUsername(refreshToken);
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        String newAccessToken = jwtService.generateAccessToken(user);
+        return AuthenticationResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(refreshToken)
+                .build();
+    }
+
+
     public void sendVerificationEmail(String email, String ipAddress) throws MessagingException {
         log.info("Send verification email request for: {}", email);
 
@@ -358,6 +378,22 @@ public class AuthenticationService {
             log.error("SHA-256 algorithm not available", e);
             throw new RuntimeException("Failed to hash token", e);
         }
+    }
+
+    public void logout(String accessToken, String refreshToken) {
+        // Revoke access token
+        RefreshToken token = refreshTokenRepository.findByTokenAndRevokedAtIsNull(refreshToken)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+
+        token.setRevokedAt(LocalDateTime.now());
+        refreshTokenRepository.save(token);
+
+        // Blacklist access token
+        Date expiration = jwtService.extractExpiration(accessToken);
+        long ttl = expiration.getTime() - System.currentTimeMillis();
+        tokenBlacklistService.blacklistTokens(accessToken, ttl);
+
+        log.info("User logged out - both tokens invalidated");
     }
 
 }

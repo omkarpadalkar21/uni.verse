@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.function.Function;
 
 @Service
@@ -77,6 +78,17 @@ public class JwtService {
         return token;
     }
 
+    public boolean isRefreshTokenValid(String token) {
+        Optional<RefreshToken> refreshToken = refreshTokenRepository.findByTokenAndRevokedAtIsNull(token);
+
+        if (refreshToken.isEmpty()) {
+            return false;
+        }
+
+        RefreshToken rt = refreshToken.get();
+        return rt.getExpiresAt().isAfter(LocalDateTime.now()) && rt.getRevokedAt() == null;
+    }
+
     private String buildToken(HashMap<String, Object> extraClaims,
                               UserDetails userDetails,
                               Long keyExpiration) {
@@ -104,9 +116,10 @@ public class JwtService {
         return extractExpiration(token).before(new Date());
     }
 
-    private Date extractExpiration(String token) {
+    public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
+
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecretKey);
