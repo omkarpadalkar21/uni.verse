@@ -138,4 +138,13 @@ public class AuthenticationController {
 
         return ResponseEntity.ok(new MessageResponse("Password reset successfully"));
     }
+
+
+    @PostMapping("/logout")
+    public ResponseEntity<MessageResponse> logout(
+            @RequestBody @Valid LogoutRequest logoutRequest
+    ) {
+        authenticationService.logout(logoutRequest.getAccessToken(), logoutRequest.getRefreshToken());
+        return ResponseEntity.ok(new MessageResponse("Logged out successfully"));
+    }
 }
