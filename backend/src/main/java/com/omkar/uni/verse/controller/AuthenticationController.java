@@ -23,11 +23,11 @@ public class AuthenticationController {
     public ResponseEntity<RegistrationResponse> register(@RequestBody @Valid RegistrationRequest registrationRequest) throws MessagingException {
         // Register user (transactional - commits to DB)
         RegistrationResponse response = authenticationService.register(registrationRequest);
-        
+
         // Send verification email AFTER transaction commits
         // If email fails, user is still registered
         authenticationService.sendVerificationEmail(registrationRequest.getEmail());
-        
+
         return new ResponseEntity<>(response, HttpStatus.ACCEPTED);
     }
 
@@ -44,6 +44,15 @@ public class AuthenticationController {
         return new ResponseEntity<>(
                 authenticationService.verifyEmail(verifyEmailRequest),
                 HttpStatus.ACCEPTED
+        );
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody @Valid ForgotPasswordRequest forgotPasswordRequest) throws MessagingException {
+        authenticationService.sendPasswordResetEmail(forgotPasswordRequest);
+        return new ResponseEntity<>(
+                "Verify email",
+                HttpStatus.OK
         );
     }
 }

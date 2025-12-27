@@ -1,5 +1,6 @@
 package com.omkar.uni.verse.services;
 
+import com.omkar.uni.verse.domain.entities.user.EmailTemplateName;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -24,11 +25,12 @@ public class EmailService {
     private final SpringTemplateEngine templateEngine;
 
     @Async
-    public CompletableFuture<String> sendVerificationEmail(
+    public CompletableFuture<String> sendEmail(
             String from,
             String to,
             String subject,
-            String otp
+            String otp,
+            EmailTemplateName templateName
     ) throws MessagingException {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -50,7 +52,7 @@ public class EmailService {
 
             Context context = new Context();
             context.setVariables(properties);
-            String template = templateEngine.process("otp-verification", context);
+            String template = templateEngine.process(templateName.getName(), context);
             messageHelper.setText(template, true);
             mailSender.send(message);
             log.info("✅ Email sent successfully to: {}", to);
