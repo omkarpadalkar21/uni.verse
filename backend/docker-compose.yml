@@ -7,27 +7,28 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      PGDATA: /var/lib/postgresql/data/pgdata # changes where Postgres stores its data directory inside the container.
+      PGDATA: /var/lib/postgresql/data/pgdata
       TZ: Asia/Kolkata
 
     ports:
       - "5432:5432"
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Mounts a named volume postgres_data at /var/lib/postgresql/data so database files persist across container restarts or re‑creations.
+      - postgres_data:/var/lib/postgresql/data
 
     restart: unless-stopped
 
+    # Generous limits for local development
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '1.0'
+          memory: 512M
+          cpus: "1.0"
         reservations:
-          memory: 128M
+          memory: 256M
 
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U omkar-21 -d universe" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,7 +37,6 @@ services:
     networks:
       - universe-network
 
-    # Postgres 17 optimized settings
     command:
       - "postgres"
       - "-c"
@@ -64,8 +64,116 @@ services:
       - "-c"
       - "max_wal_size=4GB"
 
+  redis:
+    image: redis:7-alpine
+    container_name: universe-redis-dev
+
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      TZ: Asia/Kolkata
+
+    ports:
+      - "6379:6379"
+
+    # Local dev: more memory than Heroku's 25MB limit
+    # But keep it reasonable to catch potential issues
+    command: >
+      sh -c 'exec redis-server 
+      --appendonly yes 
+      --requirepass "$$REDIS_PASSWORD"
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru'
+
+    volumes:
+      - redis_data:/data
+
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 64M
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+    networks:
+      - universe-network
+
+  universe-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        JAR_FILE: target/*.jar
+
+    container_name: universe-app-dev
+
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_REFRESH-KEY_EXPIRATION: ${JWT_REFRESH_KEY_EXPIRATION}
+      MAIL_ID: ${MAIL_ID}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      SERVER_PORT: 8080
+      TZ: Asia/Kolkata
+      # Match Heroku dyno constraints for realistic testing
+      JAVA_OPTS: >
+        -Xms256m 
+        -Xmx512m
+        -XX:+UseContainerSupport
+        -XX:MaxRAMPercentage=75.0
+        -XX:+UseG1GC
+        -XX:+HeapDumpOnOutOfMemoryError
+        -XX:HeapDumpPath=/tmp/heapdump.hprof
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    # Match Heroku dyno RAM (512MB)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    networks:
+      - universe-network
+
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   universe-network:
+    driver: bridge
