@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "club_followers",  // ✅ Fixed!
+        name = "club_followers", 
         indexes = {
                 @Index(name = "idx_club_followers_club_id", columnList = "club_id"),
                 @Index(name = "idx_club_followers_followed_at", columnList = "followed_at")

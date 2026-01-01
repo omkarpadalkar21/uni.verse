@@ -2,12 +2,14 @@ package com.omkar.uni.verse.services;
 
 import com.omkar.uni.verse.domain.dto.*;
 import com.omkar.uni.verse.domain.entities.user.*;
-import com.omkar.uni.verse.repository.*;
+import com.omkar.uni.verse.repository.EmailVerificationTokenRepository;
+import com.omkar.uni.verse.repository.PasswordResetTokenRepository;
+import com.omkar.uni.verse.repository.RefreshTokenRepository;
+import com.omkar.uni.verse.repository.UserRepository;
 import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springdoc.core.discoverer.SpringDocParameterNameDiscoverer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -29,7 +31,6 @@ import java.util.Optional;
 @Slf4j
 public class AuthenticationService {
 
-    private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
@@ -39,7 +40,6 @@ public class AuthenticationService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final TokenBlacklistService tokenBlacklistService;
-    private final SpringDocParameterNameDiscoverer localSpringDocParameterNameDiscoverer;
 
     @Value("${spring.mail.username}")
     private String platformMailId;
@@ -64,8 +64,8 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Only MUJ email addresses are allowed");
         }
 
-        var userRole = roleRepository.findByName(RoleName.USER)
-                .orElseThrow(() -> new IllegalStateException("Role USER was not initialized"));
+//        var userRole = roleRepository.findByName(RoleName.USER)
+//                .orElseThrow(() -> new IllegalStateException("Role USER was not initialized"));
 
         User newUser = User.builder()
                 .email(email)
@@ -75,8 +75,8 @@ public class AuthenticationService {
                 .universityEmailDomain(EXPECTED_DOMAIN)
                 .build();
 
-        UserRole userRoleAssociation = new UserRole(newUser, userRole);
-        newUser.getUserRoles().add(userRoleAssociation);
+//        UserRole userRoleAssociation = new UserRole(newUser, userRole);
+//        newUser.getUserRoles().add(userRoleAssociation);
         userRepository.save(newUser);
 
         log.info("User registered successfully: {}", email);

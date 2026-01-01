@@ -99,7 +99,7 @@ public class User implements UserDetails {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
-    // Timestamps - Auto-managed ✅
+    // Timestamps - Auto-managed
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -116,30 +116,32 @@ public class User implements UserDetails {
     @JoinColumn(name = "suspended_by_user_id", referencedColumnName = "id", insertable = false, updatable = false)
     private User suspendedBy;
 
+    @Enumerated(EnumType.STRING)
     @Builder.Default
-    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<UserRole> userRoles = new HashSet<>();
+    @Column(name = "role", length = 20, nullable = false)
+    private RoleName role = RoleName.USER;
 
-    @Transient
-    public Set<RoleName> getRoles() {
-        return userRoles.stream()
-                .map(userRole -> userRole.getRole().getName())
-                .collect(Collectors.toSet());
-    }
-
+    // Helper methods
     @Transient
     public boolean hasRole(RoleName roleName) {
-        return userRoles.stream()
-                .anyMatch(userRole -> userRole.getRole().getName() == roleName);
+        return this.role == roleName || this.role.canAccess(roleName);
     }
 
+
+    // Check if user can perform admin actions (FACULTY or SUPERADMIN)
+    @Transient
+    public boolean isAdmin() {
+        return this.role.canAccess(RoleName.FACULTY);
+    }
+
+    // Promote user to next role level
+    public void promoteRole() {
+        this.role = this.role.getNextLevel();
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Spring Security expects authorities prefixed with ROLE_ for role-based security to work with hasRole() and @PreAuthorize("hasRole('USER')").
-        return userRoles.stream()
-                .map(userRole -> new SimpleGrantedAuthority("ROLE_" + userRole.getRole().getName().name()))
-                .collect(Collectors.toList());
+        return role.getInheritedAuthorities();
     }
 
     @Override
