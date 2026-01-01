@@ -55,12 +55,12 @@ public class EmailService {
             String template = templateEngine.process(templateName.getName(), context);
             messageHelper.setText(template, true);
             mailSender.send(message);
-            log.info("✅ Email sent successfully to: {}", to);
+            log.info(" Email sent successfully to: {}", to);
             return CompletableFuture.completedFuture("Success");
         } catch (Exception e) {
-            log.error("❌ Failed to send verification email to: {}. Error: {}", to, e.getMessage(), e);
-            log.error("   Error type: {}", e.getClass().getSimpleName());
-            log.error("   Check: 1) Gmail App Password configured? 2) MAIL_ID and MAIL_PASSWORD set? 3) Spam folder?");
+            log.error("Failed to send verification email to: {}. Error: {}", to, e.getMessage(), e);
+            log.error("Error type: {}", e.getClass().getSimpleName());
+            log.error("Check: 1) Gmail App Password configured? 2) MAIL_ID and MAIL_PASSWORD set? 3) Spam folder?");
             return CompletableFuture.completedFuture("Error");
         }
     }

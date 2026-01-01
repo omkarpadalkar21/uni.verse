@@ -1,0 +1,59 @@
+package com.omkar.uni.verse.services.impl;
+
+import com.omkar.uni.verse.domain.dto.user.GetUserProfileResponse;
+import com.omkar.uni.verse.domain.dto.user.UpdateUserProfileRequest;
+import com.omkar.uni.verse.domain.entities.user.User;
+import com.omkar.uni.verse.repository.ClubFollowerRepository;
+import com.omkar.uni.verse.repository.UserRepository;
+import com.omkar.uni.verse.services.UserService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+import java.util.Set;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class UserServiceImpl implements UserService {
+    private final UserRepository userRepository;
+    private final ClubFollowerRepository clubFollowerRepository;
+
+    @Override
+    public User updateUserProfile(UpdateUserProfileRequest updateUserProfileRequest) {
+        User user = userRepository.findByEmail(updateUserProfileRequest.getEmail())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        user.setFirstName(updateUserProfileRequest.getFirstName());
+        user.setLastName(updateUserProfileRequest.getLastName());
+        user.setPhone(updateUserProfileRequest.getPhone());
+        user.setBio(updateUserProfileRequest.getBio());
+        user.setAvatarUrl(updateUserProfileRequest.getAvatarUrl());
+
+        log.info("Updated User profile for user: {}", user.getEmail());
+        return userRepository.save(user);
+    }
+
+    @Override
+    public GetUserProfileResponse getUserProfile(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        // Extract club names from ClubFollower entities
+        Set<String> joinedClubs = clubFollowerRepository.findClubFollowerByUser(user)
+                .orElse(Set.of())
+                .stream()
+                .map(clubFollower -> clubFollower.getClub().getName())
+                .collect(java.util.stream.Collectors.toSet());
+
+        return GetUserProfileResponse.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole())
+                .universityId(user.getUniversityId())
+                .joinedClub(joinedClubs)
+                .build();
+    }
+}
