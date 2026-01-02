@@ -1,5 +1,6 @@
 /backend/.env
 /backend/.idea
+/backend/digest.txt
 .idea/.gitignore
 .idea/copilot.data.migration.agent.xml
 .idea/copilot.data.migration.ask.xml

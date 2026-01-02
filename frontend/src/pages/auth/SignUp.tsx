@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,11 +10,15 @@ import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const roleParam = searchParams.get('role');
+  
   const [formData, setFormData] = useState<RegistrationRequest>({
     email: '',
     password: '',
     phone: '',
     universityId: '',
+    intendedRole: roleParam?.toLowerCase() === 'organizer' ? 'ORGANIZER' : undefined,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');

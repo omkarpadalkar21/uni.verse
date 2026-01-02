@@ -33,7 +33,7 @@ public class RateLimitingFilter implements Filter {
         String clientKey = getClientKey(httpServletRequest);
 
         // Get or create a bucket for this client
-        Bucket bucket = rateLimitingService.resolveBucketWithGreedyRefil(clientKey, allowedRequestsPerMinute);
+        Bucket bucket = rateLimitingService.resolveBucketWithGreedyRefill(clientKey, allowedRequestsPerMinute);
 
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
 

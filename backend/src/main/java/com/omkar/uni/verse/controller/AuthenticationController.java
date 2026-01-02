@@ -43,7 +43,11 @@ public class AuthenticationController {
 
         // Send verification email AFTER transaction commits
         // If email fails, user is still registered
-        authenticationService.sendVerificationEmail(registrationRequest.getEmail(), httpServletRequest.getRemoteAddr());
+        if ("ORGANIZER".equalsIgnoreCase(registrationRequest.getIntendedRole())) {
+            authenticationService.sendOrganizerVerificationEmail(registrationRequest.getEmail(), httpServletRequest.getRemoteAddr());
+        } else {
+            authenticationService.sendVerificationEmail(registrationRequest.getEmail(), httpServletRequest.getRemoteAddr());
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

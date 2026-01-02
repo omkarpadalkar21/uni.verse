@@ -72,6 +72,7 @@ export interface RegistrationRequest {
   password: string;
   phone: string;
   universityId: string;
+  intendedRole?: string;
 }
 
 export interface VerifyEmailRequest {
