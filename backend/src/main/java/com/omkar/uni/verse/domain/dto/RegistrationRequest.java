@@ -1,5 +1,6 @@
 package com.omkar.uni.verse.domain.dto;
 
+import com.omkar.uni.verse.domain.entities.user.RoleName;
 import jakarta.validation.constraints.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,4 +29,7 @@ public class RegistrationRequest {
     @NotBlank(message = "University ID is required")
     @Size(min = 8, max = 25, message = "University ID must be between {min} and {max} characters")
     private String universityId;
+
+    // Organizers for club leaders, null otherwise
+    private String intendedRole;
 }

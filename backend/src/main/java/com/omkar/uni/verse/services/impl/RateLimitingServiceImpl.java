@@ -18,7 +18,7 @@ public class RateLimitingServiceImpl implements RateLimitingService {
     private final ProxyManager<String> proxyManager;
 
     @Override
-    public Bucket resolveBucketWithGreedyRefil(String key, int requestsPerMinute) {
+    public Bucket resolveBucketWithGreedyRefill(String key, int requestsPerMinute) {
         Supplier<BucketConfiguration> configurationSupplier = () -> {
             Bandwidth limit = Bandwidth.builder()
                     .capacity(requestsPerMinute)
@@ -31,5 +31,22 @@ public class RateLimitingServiceImpl implements RateLimitingService {
         };
 
         return proxyManager.builder().build(key, configurationSupplier);
+    }
+
+    @Override
+    public Bucket resolveEmailBucket(String email) {
+        String bucketKey = "email:" + email;
+        Supplier<BucketConfiguration> configurationSupplier = () -> {
+            Bandwidth limit = Bandwidth.builder()
+                    .capacity(5)
+                    .refillGreedy(5, Duration.ofHours(1)) // 5 Emails per hour per user
+                    .build();
+
+            return BucketConfiguration.builder()
+                    .addLimit(limit)
+                    .build();
+        };
+
+        return proxyManager.builder().build(bucketKey, configurationSupplier);
     }
 }

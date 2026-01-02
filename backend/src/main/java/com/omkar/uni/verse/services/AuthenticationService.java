@@ -1,11 +1,13 @@
 package com.omkar.uni.verse.services;
 
 import com.omkar.uni.verse.domain.dto.*;
+import com.omkar.uni.verse.domain.entities.clubs.OrganizerVerification;
+import com.omkar.uni.verse.domain.entities.clubs.OrganizerVerificationToken;
+import com.omkar.uni.verse.domain.entities.clubs.VerificationStatus;
 import com.omkar.uni.verse.domain.entities.user.*;
-import com.omkar.uni.verse.repository.EmailVerificationTokenRepository;
-import com.omkar.uni.verse.repository.PasswordResetTokenRepository;
-import com.omkar.uni.verse.repository.RefreshTokenRepository;
-import com.omkar.uni.verse.repository.UserRepository;
+import com.omkar.uni.verse.repository.*;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.ConsumptionProbe;
 import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +42,9 @@ public class AuthenticationService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final TokenBlacklistService tokenBlacklistService;
+    private final OrganizerVerificationRepository organizerVerificationRepository;
+    private final RateLimitingService rateLimitingService;
+    private final OrganizerVerificationTokenRepository organizerVerificationTokenRepository;
 
     @Value("${spring.mail.username}")
     private String platformMailId;
@@ -64,8 +69,7 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Only MUJ email addresses are allowed");
         }
 
-//        var userRole = roleRepository.findByName(RoleName.USER)
-//                .orElseThrow(() -> new IllegalStateException("Role USER was not initialized"));
+        boolean isOrganizerRequest = "ORGANIZER".equalsIgnoreCase(registrationRequest.getIntendedRole());
 
         User newUser = User.builder()
                 .email(email)
@@ -73,22 +77,30 @@ public class AuthenticationService {
                 .phone(registrationRequest.getPhone())
                 .universityId(registrationRequest.getUniversityId())
                 .universityEmailDomain(EXPECTED_DOMAIN)
+                .accountStatus(isOrganizerRequest ? AccountStatus.PENDING_VERIFICATION : AccountStatus.ACTIVE)
                 .build();
 
-//        UserRole userRoleAssociation = new UserRole(newUser, userRole);
-//        newUser.getUserRoles().add(userRoleAssociation);
         userRepository.save(newUser);
+
+        if (isOrganizerRequest) {
+            OrganizerVerification verification = OrganizerVerification.builder()
+                    .user(newUser)
+                    .status(VerificationStatus.PENDING)
+                    .build();
+
+            organizerVerificationRepository.save(verification);
+            log.info("Organizer verification request created for : {}", email);
+        }
 
         log.info("User registered successfully: {}", email);
 
-//        // Send verification email
-//        sendEmail(newUser, EmailTemplateName.VERIFY_ACCOUNT);
-
         return RegistrationResponse.builder()
-                .message("Registration successful. Please verify your email")
+                .message(isOrganizerRequest ? "Registration successful. Please upload leadership proof to activate your account " :
+                        "Registration successful. Please verify your email")
                 .email(newUser.getEmail())
                 .build();
     }
+
 
     @Transactional
     public AuthenticationResponse verifyEmail(VerifyEmailRequest request, String ipAddress, String userAgent) {
@@ -167,7 +179,6 @@ public class AuthenticationService {
     public void sendPasswordResetEmail(ForgotPasswordRequest request, String ipAddress) throws MessagingException {
         log.info("Password reset request for email: {}", request.getEmail());
 
-        // Generic response to prevent email enumeration
         Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
 
         if (userOpt.isEmpty()) {
@@ -178,10 +189,25 @@ public class AuthenticationService {
 
         User user = userOpt.get();
 
-        // Send password reset email (includes rate limiting)
-        sendEmail(user, EmailTemplateName.FORGOT_PASSWORD, ipAddress);
+        // Check rate limit using Bucket4j
+        checkEmailRateLimit(user.getEmail());
 
-        log.info("Password reset email sent to: {}", user.getEmail());
+        // Invalidate previous tokens
+        invalidatePreviousTokens(user, TokenType.FORGOT_PASSWORD);
+
+        // Generate and save new token
+        String plainTextToken = generateAndSaveToken(user, TokenType.FORGOT_PASSWORD, ipAddress);
+
+        // Send email
+        emailService.sendEmail(
+                platformMailId,
+                user.getEmail(),
+                "Reset Password for UniVerse",
+                plainTextToken,
+                EmailTemplateName.FORGOT_PASSWORD
+        );
+
+        log.info("Password reset email sent to {}", user.getEmail());
     }
 
     // STEP 2: Actually reset the password with token
@@ -229,6 +255,36 @@ public class AuthenticationService {
         // This requires JWT blacklisting or token versioning implementation
     }
 
+    public void sendOrganizerVerificationEmail(String email, String ipAddress) throws MessagingException {
+        log.info("Sending organizer verification email to {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.error("Organizer verification email failed - user not found: {}", email);
+                    return new UsernameNotFoundException("User not found");
+                });
+
+        // Check rate limit using Bucket4j
+        checkEmailRateLimit(user.getEmail());
+
+        // Invalidate previous tokens
+        invalidatePreviousTokens(user, TokenType.VERIFY_ORGANIZER);
+
+        // Generate and save new token
+        String plainTextToken = generateAndSaveToken(user, TokenType.VERIFY_ORGANIZER, ipAddress);
+
+        // Send email
+        emailService.sendEmail(
+                platformMailId,
+                user.getEmail(),
+                "Organizer Verification from UniVerse",
+                plainTextToken,
+                EmailTemplateName.VERIFY_ORGANIZER
+        );
+
+        log.info("Organizer verification email sent successfully to {}", user.getEmail());
+    }
+
     @Transactional
     public AuthenticationResponse refreshAccessToken(String refreshToken) {
         if (!jwtService.isRefreshTokenValid(refreshToken)) {
@@ -248,69 +304,33 @@ public class AuthenticationService {
 
 
     public void sendVerificationEmail(String email, String ipAddress) throws MessagingException {
-        log.info("Send verification email request for: {}", email);
+        log.info("Sending verification email to {}", email);
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    log.error("Send verification failed - user not found: {}", email);
+                    log.error("Verification email failed - user not found: {}", email);
                     return new UsernameNotFoundException("User not found");
                 });
 
-        sendEmail(user, EmailTemplateName.VERIFY_ACCOUNT, ipAddress);
-    }
 
-    private void sendEmail(User user, EmailTemplateName templateName, String ipAddress) throws MessagingException, IllegalStateException {
-        log.debug("Preparing to send {} email to: {}", templateName, user.getEmail());
-
-        // Check rate limiting BEFORE doing any other operations
-        checkRateLimit(user, templateName);
-
-        TokenType tokenType = templateName == EmailTemplateName.VERIFY_ACCOUNT
-                ? TokenType.VERIFY_ACCOUNT
-                : TokenType.FORGOT_PASSWORD;
+        checkEmailRateLimit(user.getEmail());
 
         // Invalidate previous tokens
-        invalidatePreviousTokens(user, tokenType);
+        invalidatePreviousTokens(user, TokenType.VERIFY_ACCOUNT);
 
-        String plainTextToken = generateAndSaveToken(user, tokenType, ipAddress);
+        // Generate and save new token
+        String plainTextToken = generateAndSaveToken(user, TokenType.VERIFY_ACCOUNT, ipAddress);
 
-        String emailSubject = templateName == EmailTemplateName.VERIFY_ACCOUNT
-                ? "OTP Verification from UniVerse"
-                : "Reset Password for UniVerse";
-
+        // Send email
         emailService.sendEmail(
                 platformMailId,
                 user.getEmail(),
-                emailSubject,
+                "OTP Verification from UniVerse",
                 plainTextToken,
-                templateName
+                EmailTemplateName.VERIFY_ACCOUNT
         );
 
-        log.info("{} email sent successfully to: {}", templateName, user.getEmail());
-    }
-
-    private void checkRateLimit(User user, EmailTemplateName templateName) {
-        log.debug("Checking rate limit for user: {} with template: {}", user.getEmail(), templateName);
-
-        if (templateName == EmailTemplateName.VERIFY_ACCOUNT) {
-            Optional<EmailVerificationToken> recentToken =
-                    emailVerificationTokenRepository.findTopByUserOrderByCreatedAtDesc(user);
-
-            if (recentToken.isPresent() &&
-                    recentToken.get().getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(2))) {
-                log.warn("Rate limit hit for verification email: {}", user.getEmail());
-                throw new IllegalStateException("Please wait before requesting a new OTP");
-            }
-        } else if (templateName == EmailTemplateName.FORGOT_PASSWORD) {
-            Optional<PasswordResetToken> recentToken =
-                    passwordResetTokenRepository.findTopByUserOrderByCreatedAtDesc(user);
-
-            if (recentToken.isPresent() &&
-                    recentToken.get().getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(5))) {
-                log.warn("Rate limit hit for password reset email: {}", user.getEmail());
-                throw new IllegalStateException("Please wait before requesting a new password reset");
-            }
-        }
+        log.info("Verification email sent successfully to {}", user.getEmail());
     }
 
     private String generateAndSaveToken(User user, TokenType type, String ipAddress) {
@@ -341,6 +361,17 @@ public class AuthenticationService {
                 passwordResetTokenRepository.save(token);
                 log.debug("Password reset token created for user: {}", user.getEmail());
             }
+
+            case VERIFY_ORGANIZER -> {
+                var token = OrganizerVerificationToken.builder()
+                        .user(user)
+                        .otp(hashedToken)
+                        .expiresAt(LocalDateTime.now().plusMinutes(10))
+                        .ipAddress(ipAddress)
+                        .build();
+                organizerVerificationTokenRepository.save(token);
+                log.debug("Organizer verification token created for user: {}", user.getEmail());
+            }
             default -> {
                 log.error("Invalid token type: {}", type);
                 throw new IllegalStateException("Invalid token type");
@@ -356,6 +387,7 @@ public class AuthenticationService {
         switch (type) {
             case VERIFY_ACCOUNT -> emailVerificationTokenRepository.deleteByUserAndVerifiedAtIsNull(user);
             case FORGOT_PASSWORD -> passwordResetTokenRepository.deleteByUserAndUsedAtIsNull(user);
+            case VERIFY_ORGANIZER -> organizerVerificationTokenRepository.deleteByUserAndVerifiedAtIsNull(user);
         }
     }
 
@@ -394,6 +426,22 @@ public class AuthenticationService {
         tokenBlacklistService.blacklistTokens(accessToken, ttl);
 
         log.info("User logged out - both tokens invalidated");
+    }
+
+    private void checkEmailRateLimit(String email) {
+        Bucket bucket = rateLimitingService.resolveEmailBucket(email);
+        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+
+        if (!probe.isConsumed()) {
+            long waitSeconds = probe.getNanosToWaitForRefill() / 1_000_000_000;
+            log.warn("Email rate limit exceeded for user: {}. Wait {} seconds", email, waitSeconds);
+            throw new IllegalStateException(
+                    String.format("Too many email requests. Please try again in %d seconds.", waitSeconds)
+            );
+        }
+
+        log.debug("Email rate limit check passed for user: {}. Remaining: {}",
+                email, probe.getRemainingTokens());
     }
 
 }

@@ -28,7 +28,7 @@ export const FinalCTA: React.FC = () => {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                 <Button size="lg" className="glow h-14 px-8 text-lg w-full sm:w-auto" asChild>
-                     <Link to="/auth/signup?role=student">
+                     <Link to="/auth/signup">
                         Sign Up as Student
                      </Link>
                 </Button>

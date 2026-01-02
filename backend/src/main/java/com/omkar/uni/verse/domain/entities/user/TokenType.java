@@ -5,5 +5,6 @@ import lombok.Getter;
 @Getter
 public enum TokenType {
     VERIFY_ACCOUNT,
-    FORGOT_PASSWORD
+    FORGOT_PASSWORD,
+    VERIFY_ORGANIZER
 }
