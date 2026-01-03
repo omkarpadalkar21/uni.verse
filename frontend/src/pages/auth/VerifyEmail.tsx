@@ -19,7 +19,7 @@ const VerifyEmail: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
-  const [countdown, setCountdown] = useState(300); // 5 minutes in seconds
+  const [countdown, setCountdown] = useState(600); // 10 minutes in seconds
   const [canResend, setCanResend] = useState(false);
 
   // Redirect if no email provided
@@ -100,7 +100,7 @@ const VerifyEmail: React.FC = () => {
         universityId: '',
       });
       setResendSuccess(true);
-      setCountdown(300); // Reset countdown
+      setCountdown(600); // Reset countdown
       setCanResend(false);
       setTimeout(() => setResendSuccess(false), 3000);
     } catch (err: unknown) {
