@@ -72,7 +72,7 @@ public class Club {
     @URL(message = "Invalid banner URL")
     private String bannerUrl;
 
-    @Type(JsonBinaryType.class)
+    @Type(JsonBinaryType.class) // used to map a JSON / JSONB database column to a Java object.
     @Column(name = "social_links", columnDefinition = "jsonb")
     private Map<String, String> socialLinks = new HashMap<>();
     // Example: {"instagram": "...", "linkedin": "...", "website": "..."}
