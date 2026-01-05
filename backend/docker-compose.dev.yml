@@ -1,0 +1,182 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: universe-postgres-dev
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: Asia/Kolkata
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    networks:
+      - universe-network
+
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=100"
+      - "-c"
+      - "shared_buffers=128MB"
+      - "-c"
+      - "effective_cache_size=512MB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=2MB"
+      - "-c"
+      - "huge_pages=off"
+      - "-c"
+      - "min_wal_size=1GB"
+      - "-c"
+      - "max_wal_size=4GB"
+
+  redis:
+    image: redis:7-alpine
+    container_name: universe-redis-dev
+
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      TZ: Asia/Kolkata
+
+    ports:
+      - "6379:6379"
+
+    command: >
+      sh -c 'exec redis-server 
+      --appendonly yes 
+      --requirepass "$$REDIS_PASSWORD"
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru'
+
+    volumes:
+      - redis_data:/data
+
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 64M
+
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+    networks:
+      - universe-network
+
+  universe-app:
+    # Use base JRE image instead of building
+    image: eclipse-temurin:21-jre-alpine
+    container_name: universe-app-dev
+
+    # Mount the pre-built JAR from your local machine
+    volumes:
+      - ./target/uni.verse-0.0.1-SNAPSHOT.jar:/app/app.jar:ro
+
+    working_dir: /app
+
+    # Run the JAR directly
+    command: sh -c "java $$JAVA_OPTS -jar app.jar"
+
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ACCESS_KEY_EXPIRATION: ${JWT_ACCESS_KEY_EXPIRATION}
+      JWT_REFRESH_KEY_EXPIRATION: ${JWT_REFRESH_KEY_EXPIRATION}
+      MAIL_ID: ${MAIL_ID}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      REQUESTS_PER_MINUTE: 100
+      SERVER_PORT: 8080
+      TZ: Asia/Kolkata
+      # Development JVM options (more relaxed than production)
+      JAVA_OPTS: >
+        -Xms256m 
+        -Xmx512m
+        -XX:+UseContainerSupport
+        -XX:MaxRAMPercentage=75.0
+        -XX:+UseG1GC
+        -XX:+HeapDumpOnOutOfMemoryError
+        -XX:HeapDumpPath=/tmp/heapdump.hprof
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    networks:
+      - universe-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  universe-network:
+    driver: bridge

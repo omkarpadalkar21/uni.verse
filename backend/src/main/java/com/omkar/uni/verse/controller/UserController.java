@@ -1,5 +1,6 @@
 package com.omkar.uni.verse.controller;
 
+import com.omkar.uni.verse.domain.dto.MessageResponse;
 import com.omkar.uni.verse.domain.dto.user.GetUserProfileResponse;
 import com.omkar.uni.verse.domain.dto.user.UpdateUserProfileRequest;
 import com.omkar.uni.verse.services.UserService;
@@ -23,9 +24,9 @@ public class UserController {
     }
 
     @PostMapping("/profile")
-    public ResponseEntity<?> updateUserProfile(@RequestBody @Valid UpdateUserProfileRequest updateUserProfileRequest) {
+    public ResponseEntity<MessageResponse> updateUserProfile(@RequestBody @Valid UpdateUserProfileRequest updateUserProfileRequest) {
         userService.updateUserProfile(updateUserProfileRequest);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+        return ResponseEntity.ok(new MessageResponse("Profile updated successfully"));
     }
 
 }
