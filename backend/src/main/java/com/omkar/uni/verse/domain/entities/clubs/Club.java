@@ -122,6 +122,9 @@ public class Club {
     @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ClubMember> members = new HashSet<>();
 
+    @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ClubLeader> leaders = new HashSet<>();
+
     @OneToMany(mappedBy = "club")
     private Set<ClubFollower> followers = new HashSet<>();
 

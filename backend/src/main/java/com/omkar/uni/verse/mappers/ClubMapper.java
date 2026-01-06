@@ -14,4 +14,5 @@ public interface ClubMapper {
     ClubRegistrationResponse toRegistrationResponse(Club club);
 
     ClubDTO toClubDTO(Club club);
+
 }
