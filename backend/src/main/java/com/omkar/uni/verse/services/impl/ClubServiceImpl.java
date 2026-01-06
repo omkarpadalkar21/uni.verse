@@ -1,20 +1,20 @@
 package com.omkar.uni.verse.services.impl;
 
-import com.omkar.uni.verse.domain.dto.clubs.ClubDTO;
-import com.omkar.uni.verse.domain.dto.clubs.ClubRegistrationRequest;
-import com.omkar.uni.verse.domain.dto.clubs.ClubRegistrationResponse;
+import com.omkar.uni.verse.domain.dto.clubs.*;
+import com.omkar.uni.verse.domain.entities.clubs.Club;
 import com.omkar.uni.verse.domain.entities.clubs.ClubStatus;
+import com.omkar.uni.verse.domain.entities.user.User;
 import com.omkar.uni.verse.mappers.ClubMapper;
 import com.omkar.uni.verse.repository.ClubRepository;
 import com.omkar.uni.verse.services.ClubService;
-import com.omkar.uni.verse.domain.entities.clubs.Club;
-import com.omkar.uni.verse.domain.entities.user.User;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +55,51 @@ public class ClubServiceImpl implements ClubService {
 
     @Override
     public Page<ClubDTO> getAllClubs(int offset, int pageSize) {
-        return clubRepository.findAll(PageRequest.of(offset, pageSize)).map(clubMapper::toClubDTO);
+        return clubRepository.findAllByClubStatus(ClubStatus.ACTIVE, PageRequest.of(offset, pageSize))
+                .map(clubMapper::toClubDTO);
+    }
+
+    @Override
+    public ClubDTO getClubBySlug(String slug) {
+        return clubMapper.toClubDTO(clubRepository.findBySlugAndClubStatus(slug, ClubStatus.ACTIVE)
+                .orElseThrow(() -> new EntityNotFoundException("Club not found.")));
+    }
+
+    @Override
+    @PreAuthorize("hasRole('CLUB_LEADER')")
+    public ClubDTO updateClubBySlug(String slug, ClubUpdateRequest clubUpdateRequest) {
+        Club club = clubRepository.findBySlugAndClubStatus(slug, ClubStatus.ACTIVE)
+                .orElseThrow(() -> new EntityNotFoundException("Club not found or not activated!"));
+
+        User currentUser = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        if (club.getLeaders().stream().anyMatch(clubLeader -> clubLeader.getUser().equals(currentUser))) {
+            throw new AccessDeniedException("You are not authorized to update this club!");
+        }
+
+        club.setName(clubUpdateRequest.getName());
+        club.setDescription(clubUpdateRequest.getDescription());
+        club.setLogoUrl(clubUpdateRequest.getLogoUrl());
+        club.setSocialLinks(clubUpdateRequest.getSocialLinks());
+
+        return clubMapper.toClubDTO(club);
+    }
+
+    @Override
+    public ClubRegistrationResponse approveClubBySlug(String slug) {
+        return null;
+    }
+
+    @Override
+    public ClubRejectionResponse rejectClubBySLug(String slug) {
+        return null;
+    }
+
+    @Override
+    public ClubSuspensionResponse suspendClubBySLug(String slug) {
+        return null;
     }
 }
