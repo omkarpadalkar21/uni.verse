@@ -11,7 +11,7 @@ import java.util.Map;
 @Getter
 @Setter
 @Builder
-public class ClubRegistrationResponse {
+public class ClubResponse {
     private String name;
 
     private String slug;

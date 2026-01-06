@@ -4,7 +4,7 @@ import com.omkar.uni.verse.domain.dto.clubs.*;
 import org.springframework.data.domain.Page;
 
 public interface ClubService {
-    ClubRegistrationResponse registerNewClub(ClubRegistrationRequest registrationRequest);
+    ClubResponse registerNewClub(ClubRegistrationRequest registrationRequest);
 
     Page<ClubDTO> getAllClubs(int offset, int pageSize);
 
@@ -12,10 +12,10 @@ public interface ClubService {
 
     ClubDTO updateClubBySlug(String slug, ClubUpdateRequest clubUpdateRequest);
 
-    ClubRegistrationResponse approveClubBySlug(String slug);
+    ClubResponse approveClubBySlug(String slug);
 
-    ClubRejectionResponse rejectClubBySLug(String slug);
+    ClubResponse rejectClubBySlug(String slug);
 
-    ClubSuspensionResponse suspendClubBySLug(String slug);
+    ClubResponse suspendClubBySlug(String slug);
 
 }
