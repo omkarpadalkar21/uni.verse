@@ -16,4 +16,7 @@ public interface ClubRepository extends JpaRepository<Club, UUID> {
     Page<Club> findAllByClubStatus(ClubStatus clubStatus, Pageable pageable);
 
     Optional<Club> findBySlugAndClubStatus(String slug, ClubStatus clubStatus);
+
+    Optional<Club> findBySlug(String slug);
+
 }

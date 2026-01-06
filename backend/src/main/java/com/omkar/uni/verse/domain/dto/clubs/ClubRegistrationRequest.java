@@ -1,6 +1,7 @@
 package com.omkar.uni.verse.domain.dto.clubs;
 
 import com.omkar.uni.verse.domain.entities.clubs.ClubCategory;
+import com.omkar.uni.verse.domain.entities.clubs.LeadershipRole;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -38,6 +39,8 @@ public class ClubRegistrationRequest {
     @URL(message = "Invalid logo URL")
     private String logoUrl;
 
+    @NotNull
+    private LeadershipRole role;
 
     private Map<String, String> socialLinks = new HashMap<>();
 }

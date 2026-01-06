@@ -38,10 +38,6 @@ public class ClubMember {
     @JoinColumn(name = "club_id", nullable = false)
     private Club club;
 
-    @Column(length = 10, nullable = false)
-    @Enumerated(EnumType.STRING)
-    private ClubRole role;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "added_by_user_id")
     private User addedBy;
