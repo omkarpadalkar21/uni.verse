@@ -3,6 +3,7 @@ package com.omkar.uni.verse.services.impl;
 import com.omkar.uni.verse.domain.dto.user.GetUserProfileResponse;
 import com.omkar.uni.verse.domain.dto.user.UpdateUserProfileRequest;
 import com.omkar.uni.verse.domain.entities.user.User;
+import com.omkar.uni.verse.mappers.UserMapper;
 import com.omkar.uni.verse.repository.ClubFollowerRepository;
 import com.omkar.uni.verse.repository.UserRepository;
 import com.omkar.uni.verse.services.UserService;
@@ -19,6 +20,8 @@ import java.util.Set;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ClubFollowerRepository clubFollowerRepository;
+
+    private final UserMapper userMapper;
 
     @Override
     public User updateUserProfile(UpdateUserProfileRequest updateUserProfileRequest) {
@@ -47,13 +50,9 @@ public class UserServiceImpl implements UserService {
                 .map(clubFollower -> clubFollower.getClub().getName())
                 .collect(java.util.stream.Collectors.toSet());
 
-        return GetUserProfileResponse.builder()
-                .id(user.getId())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .role(user.getRole())
-                .universityId(user.getUniversityId())
-                .joinedClub(joinedClubs)
-                .build();
+        GetUserProfileResponse userProfileResponse = userMapper.toUserProfileResponse(user);
+        userProfileResponse.setJoinedClub(joinedClubs);
+
+        return userProfileResponse;
     }
 }
