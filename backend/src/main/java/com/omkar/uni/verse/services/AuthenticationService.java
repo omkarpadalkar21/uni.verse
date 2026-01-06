@@ -5,6 +5,7 @@ import com.omkar.uni.verse.domain.entities.clubs.OrganizerVerification;
 import com.omkar.uni.verse.domain.entities.clubs.OrganizerVerificationToken;
 import com.omkar.uni.verse.domain.entities.clubs.VerificationStatus;
 import com.omkar.uni.verse.domain.entities.user.*;
+import com.omkar.uni.verse.mappers.UserMapper;
 import com.omkar.uni.verse.repository.*;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
@@ -45,7 +46,7 @@ public class AuthenticationService {
     private final OrganizerVerificationRepository organizerVerificationRepository;
     private final RateLimitingService rateLimitingService;
     private final OrganizerVerificationTokenRepository organizerVerificationTokenRepository;
-
+    private final UserMapper userMapper;
     @Value("${spring.mail.username}")
     private String platformMailId;
 
@@ -71,14 +72,10 @@ public class AuthenticationService {
 
         boolean isOrganizerRequest = "ORGANIZER".equalsIgnoreCase(registrationRequest.getIntendedRole());
 
-        User newUser = User.builder()
-                .email(email)
-                .password(passwordEncoder.encode(registrationRequest.getPassword()))
-                .phone(registrationRequest.getPhone())
-                .universityId(registrationRequest.getUniversityId())
-                .universityEmailDomain(EXPECTED_DOMAIN)
-                .accountStatus(isOrganizerRequest ? AccountStatus.PENDING_VERIFICATION : AccountStatus.ACTIVE)
-                .build();
+        User newUser = userMapper.toEntity(registrationRequest);
+        newUser.setPassword(passwordEncoder.encode(registrationRequest.getPassword()));
+        newUser.setUniversityEmailDomain(EXPECTED_DOMAIN);
+        newUser.setAccountStatus(isOrganizerRequest ? AccountStatus.PENDING_VERIFICATION : AccountStatus.ACTIVE);
 
         userRepository.save(newUser);
 
