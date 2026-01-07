@@ -1,6 +1,9 @@
 package com.omkar.uni.verse.services.impl;
 
-import com.omkar.uni.verse.domain.dto.clubs.*;
+import com.omkar.uni.verse.domain.dto.clubs.ClubDTO;
+import com.omkar.uni.verse.domain.dto.clubs.ClubRegistrationRequest;
+import com.omkar.uni.verse.domain.dto.clubs.ClubResponse;
+import com.omkar.uni.verse.domain.dto.clubs.ClubUpdateRequest;
 import com.omkar.uni.verse.domain.entities.clubs.Club;
 import com.omkar.uni.verse.domain.entities.clubs.ClubLeader;
 import com.omkar.uni.verse.domain.entities.clubs.ClubStatus;
@@ -9,7 +12,7 @@ import com.omkar.uni.verse.mappers.ClubMapper;
 import com.omkar.uni.verse.repository.ClubRepository;
 import com.omkar.uni.verse.services.ClubService;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -18,6 +21,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -139,7 +143,7 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_FACULTY')")
     public ClubResponse approveClubBySlug(String slug) {
         log.debug("Attempting to approve club with slug: {}", slug);
@@ -182,7 +186,7 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_FACULTY')")
     public ClubResponse rejectClubBySlug(String slug) {
         log.debug("Attempting to reject club with slug: {}", slug);
@@ -225,7 +229,7 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_FACULTY')")
     public ClubResponse suspendClubBySlug(String slug) {
         log.debug("Attempting to suspend club with slug: {}", slug);
