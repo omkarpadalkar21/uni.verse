@@ -22,7 +22,7 @@ public class UserController {
         return ResponseEntity.ok().body(userProfile);
     }
 
-    @PostMapping("/profile")
+    @PutMapping("/profile")
     public ResponseEntity<MessageResponse> updateUserProfile(@RequestBody @Valid UpdateUserProfileRequest updateUserProfileRequest) {
         userService.updateUserProfile(updateUserProfileRequest);
         return ResponseEntity.ok(new MessageResponse("Profile updated successfully"));

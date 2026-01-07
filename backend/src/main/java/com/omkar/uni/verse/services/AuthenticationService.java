@@ -10,7 +10,7 @@ import com.omkar.uni.verse.repository.*;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import jakarta.mail.MessagingException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,7 +52,7 @@ public class AuthenticationService {
 
     private static final String EXPECTED_DOMAIN = "@muj.manipal.edu";
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public RegistrationResponse register(RegistrationRequest registrationRequest) throws MessagingException {
         log.info("Registration attempt for email: {}", registrationRequest.getEmail());
 
@@ -99,7 +99,7 @@ public class AuthenticationService {
     }
 
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public AuthenticationResponse verifyEmail(VerifyEmailRequest request, String ipAddress, String userAgent) {
         log.info("Email verification attempt for: {}", request.getEmail());
 
@@ -208,7 +208,7 @@ public class AuthenticationService {
     }
 
     // STEP 2: Actually reset the password with token
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void resetPassword(ResetPasswordRequest request) {
         log.info("Password reset attempt for email: {}", request.getEmail());
 
@@ -282,7 +282,7 @@ public class AuthenticationService {
         log.info("Organizer verification email sent successfully to {}", user.getEmail());
     }
 
-    @Transactional
+    @Transactional(readOnly=true)
     public AuthenticationResponse refreshAccessToken(String refreshToken) {
         if (!jwtService.isRefreshTokenValid(refreshToken)) {
             throw new IllegalArgumentException("Invalid or expired refresh token");
