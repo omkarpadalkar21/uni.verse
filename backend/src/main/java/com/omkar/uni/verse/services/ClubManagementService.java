@@ -1,7 +1,6 @@
 package com.omkar.uni.verse.services;
 
 import com.omkar.uni.verse.domain.dto.MessageResponse;
-import com.omkar.uni.verse.domain.dto.PageResponse;
 import com.omkar.uni.verse.domain.dto.clubs.ClubMembersDTO;
 import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubRequest;
 import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubResponse;
@@ -14,13 +13,13 @@ public interface ClubManagementService {
 
     MessageResponse createClubJoinRequest(String slug, JoinClubRequest joinRequest);
 
-    Page<ClubJoinRequest> getAllClubJoinRequests(String slug);
+    Page<ClubJoinRequest> getAllClubJoinRequests(String slug, int offset, int pageSize);
 
     JoinClubResponse approveClubJoinRequest(String slug, UUID id);
 
     JoinClubResponse rejectClubJoinRequest(String slug, UUID id);
 
-    ClubMembersDTO getAllClubMembers(String slug);
+    Page<ClubMembersDTO> getAllClubMembers(String slug, int offset, int pageSize);
 
     JoinClubResponse promoteClubMember(String slug, UUID id);
 
