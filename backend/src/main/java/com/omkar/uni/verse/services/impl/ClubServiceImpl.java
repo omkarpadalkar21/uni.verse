@@ -34,7 +34,7 @@ public class ClubServiceImpl implements ClubService {
     private final ClubMapper clubMapper;
 
     @Override
-    @PreAuthorize("hasAnyAuthority('ROLE_CLUB_LEADER')")
+    @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     public ClubResponse registerNewClub(ClubRegistrationRequest registrationRequest) {
         log.debug("Attempting to register new club with slug: {}", registrationRequest.getSlug());
 
@@ -105,7 +105,7 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
-    @PreAuthorize("hasAnyAuthority('ROLE_CLUB_LEADER')")
+    @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     public ClubDTO updateClubBySlug(String slug, ClubUpdateRequest clubUpdateRequest) {
         log.debug("Attempting to update club with slug: {}", slug);
 

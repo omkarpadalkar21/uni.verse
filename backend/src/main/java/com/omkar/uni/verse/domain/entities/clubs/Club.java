@@ -53,7 +53,6 @@ public class Club {
     private String description;
 
     //  Categorization
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private ClubCategory clubCategory;
@@ -63,7 +62,6 @@ public class Club {
     private String[] tags = new String[0];  // Use array, not Set
 
     //  Media
-
     @Column(name = "logo_url", length = 500)
     @URL(message = "Invalid logo URL")
     private String logoUrl;
@@ -104,7 +102,6 @@ public class Club {
     private LocalDateTime suspendedAt;
 
     //  Metrics
-
     @Column(name = "member_count", nullable = false)
     @Builder.Default
     private Integer memberCount = 0;
@@ -118,7 +115,6 @@ public class Club {
     private Integer eventCount = 0;
 
     //  Relationships
-
     @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ClubMember> members = new HashSet<>();
 
@@ -132,7 +128,6 @@ public class Club {
     private Set<Event> events = new HashSet<>();
 
     //  Timestamps
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_user_id", nullable = false)
     private User createdBy;
@@ -146,7 +141,6 @@ public class Club {
     private LocalDateTime updatedAt;
 
     //  Helper Methods
-
     @Transient
     public boolean isActive() {
         return clubStatus == ClubStatus.ACTIVE;
