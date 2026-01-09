@@ -5,6 +5,7 @@ import com.omkar.uni.verse.domain.dto.clubs.ClubMembersDTO;
 import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubRequest;
 import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubResponse;
 import com.omkar.uni.verse.domain.entities.clubs.*;
+import com.omkar.uni.verse.domain.entities.user.RoleName;
 import com.omkar.uni.verse.domain.entities.user.User;
 import com.omkar.uni.verse.repository.ClubJoinRequestRepository;
 import com.omkar.uni.verse.repository.ClubLeaderRepository;
@@ -23,7 +24,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +44,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     private final ClubLeaderRepository clubLeaderRepository;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public MessageResponse createClubJoinRequest(String slug, JoinClubRequest joinRequest) {
 
         Club club = clubRepository.findBySlugAndClubStatus(slug, ClubStatus.ACTIVE)
@@ -74,6 +78,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     //    GET /clubs/my-club/join-requests?page=2&size=20 → Records 41-60
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
+    @Transactional(rollbackFor = Exception.class, readOnly = true)
     public Page<ClubJoinRequest> getAllClubJoinRequests(String slug, int offset, int pageSize) {
         Club club = clubRepository.findBySlug(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
@@ -94,6 +99,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
 
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
+    @Transactional(rollbackFor = Exception.class)
     public JoinClubResponse approveClubJoinRequest(String slug, UUID id) {
         Club club = clubRepository.findBySlug(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
@@ -111,11 +117,24 @@ public class ClubManagementServiceImpl implements ClubManagementService {
         User userRequestingToJoinClub = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with club joining request"));
 
-        ClubJoinRequest clubJoinRequest = clubJoinRequestRepository.findClubJoinRequestByUser(userRequestingToJoinClub)
+        if (clubMemberRepository.existsByUserAndClubAndLeftAtIsNull(userRequestingToJoinClub, club)) {
+            throw new IllegalStateException("User is already a member of this club");
+        }
+
+        ClubJoinRequest clubJoinRequest = clubJoinRequestRepository
+                .findClubJoinRequestByUserAndClub(userRequestingToJoinClub, club)
                 .orElseThrow(() -> new IllegalArgumentException("No club joining request found for User:" + userRequestingToJoinClub.getEmail()));
 
         clubJoinRequest.setStatus(JoinRequestStatus.APPROVED);
         clubJoinRequestRepository.save(clubJoinRequest);
+
+        ClubMember newClubMember = ClubMember.builder()
+                .user(userRequestingToJoinClub)
+                .club(club)
+                .addedBy(currentUser)
+                .build();
+
+        clubMemberRepository.save(newClubMember);
 
         return new JoinClubResponse(
                 "Successfully created membership"
@@ -125,6 +144,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
 
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
+    @Transactional(rollbackFor = Exception.class)
     public JoinClubResponse rejectClubJoinRequest(String slug, UUID id) {
         Club club = clubRepository.findBySlug(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
@@ -142,7 +162,8 @@ public class ClubManagementServiceImpl implements ClubManagementService {
         User userRequestingToJoinClub = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with club joining request"));
 
-        ClubJoinRequest clubJoinRequest = clubJoinRequestRepository.findClubJoinRequestByUser(userRequestingToJoinClub)
+        ClubJoinRequest clubJoinRequest = clubJoinRequestRepository
+                .findClubJoinRequestByUserAndClub(userRequestingToJoinClub, club)
                 .orElseThrow(() -> new IllegalArgumentException("No club joining request found for User:" + userRequestingToJoinClub.getEmail()));
 
         clubJoinRequest.setStatus(JoinRequestStatus.REJECTED);
@@ -150,12 +171,13 @@ public class ClubManagementServiceImpl implements ClubManagementService {
 
         return new JoinClubResponse(
                 "Successfully rejected membership request"
-                , ClubRole.MEMBER
+                , null
         );
     }
 
     @Override
-    @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_CLUB_LEADER','ROLE_CLUB_MEMBER')")
+    @Transactional(rollbackFor = Exception.class, readOnly = true)
     public Page<ClubMembersDTO> getAllClubMembers(String slug, int offset, int pageSize) {
         Club club = clubRepository.findBySlug(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
@@ -164,8 +186,8 @@ public class ClubManagementServiceImpl implements ClubManagementService {
                 .getAuthentication()
                 .getPrincipal();
 
-        if (club.getLeaders().stream().noneMatch(clubLeader -> clubLeader.getUser().equals(currentUser))) {
-            log.warn("Access denied: User {} attempted to get club members for club '{}' (slug: {}) but is not a leader",
+        if (club.getLeaders().stream().noneMatch(clubLeader -> clubLeader.getUser().equals(currentUser)) && club.getMembers().stream().noneMatch(clubMember -> clubMember.getUser().equals(currentUser))) {
+            log.warn("Access denied: User {} attempted to get club members for club '{}' (slug: {}) but is not a leader/member",
                     currentUser.getEmail(), club.getName(), slug);
             throw new AccessDeniedException("You are not authorized to get details of this club!");
         }
@@ -208,17 +230,117 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
+    @Transactional(rollbackFor = Exception.class)
     public JoinClubResponse promoteClubMember(String slug, UUID id) {
-        return null;
+        User currentUser = (User) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Club club = clubRepository.findBySlug(slug)
+                .orElseThrow(() -> new EntityNotFoundException("Club not found"));
+
+        if (club.getLeaders().stream().noneMatch(clubLeader -> clubLeader.getUser().equals(currentUser))) {
+            log.warn("Access denied: User {} attempted to promote club members for club '{}' (slug: {}) but is not a leader",
+                    currentUser.getEmail(), club.getName(), slug);
+            throw new AccessDeniedException("You are not authorized to update this club!");
+        }
+
+        User userToBePromoted = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found to be promoted"));
+
+        ClubMember memberToBePromoted = clubMemberRepository.findByUser(userToBePromoted)
+                .orElseThrow(() -> new EntityNotFoundException("The provided user isn't a member of the respective club"));
+
+
+        clubMemberRepository.removeClubMemberById(memberToBePromoted.getId());
+
+        userToBePromoted.setRole(RoleName.CLUB_LEADER);
+        userRepository.save(userToBePromoted);
+
+        ClubLeader newClubLeader = ClubLeader.builder()
+                .club(club)
+                .user(userToBePromoted)
+                .role(LeadershipRole.SECRETARY) // TODO: Add enum field for dynamical role allocation
+                .appointedAt(LocalDateTime.now())
+                .build();
+
+        clubLeaderRepository.save(newClubLeader);
+
+        return new JoinClubResponse(
+                "User successfully promoted",
+                ClubRole.LEADER
+        );
     }
 
     @Override
+    @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
+    @Transactional(rollbackFor = Exception.class)
     public JoinClubResponse removeClubMember(String slug, UUID id) {
-        return null;
+        User currentUser = (User) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Club club = clubRepository.findBySlug(slug)
+                .orElseThrow(() -> new EntityNotFoundException("Club not found"));
+
+        if (club.getLeaders().stream().noneMatch(clubLeader -> clubLeader.getUser().equals(currentUser))) {
+            log.warn("Access denied: User {} attempted to remove club members for club '{}' (slug: {}) but is not a leader",
+                    currentUser.getEmail(), club.getName(), slug);
+            throw new AccessDeniedException("You are not authorized to update this club!");
+        }
+
+        User userToBeRemoved = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found to be removed"));
+
+        removeClubMember(userToBeRemoved, club);
+
+        log.info("User {} successfully removed from club '{}' by {}",
+                userToBeRemoved.getEmail(), club.getName(), currentUser.getEmail());
+
+        return new JoinClubResponse(
+                "User successfully removed from club",
+                null
+        );
     }
 
     @Override
+    @PreAuthorize("hasAuthority('ROLE_CLUB_MEMBER')")
+    @Transactional(rollbackFor = Exception.class)
     public JoinClubResponse leaveClub(String slug) {
-        return null;
+        User currentUser = (User) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Club club = clubRepository.findBySlug(slug)
+                .orElseThrow(() -> new EntityNotFoundException("Club not found"));
+
+        if (club.getMembers().stream().noneMatch(clubMember -> clubMember.getUser().equals(currentUser))) {
+            log.warn("Access denied: User {} attempted to leave club  '{}' (slug: {}) but is not a member",
+                    currentUser.getEmail(), club.getName(), slug);
+            throw new AccessDeniedException("You are not authorized to update this club!");
+        }
+
+        removeClubMember(currentUser, club);
+
+        log.info("User {} successfully left from club '{}'",
+                currentUser.getEmail(), club.getName());
+
+        return new JoinClubResponse(
+                "Successfully left from club",
+                null
+        );
+    }
+
+    private void removeClubMember(User currentUser, Club club) {
+        ClubMember clubMember = clubMemberRepository.findByUserAndClubAndLeftAtIsNull(currentUser, club)
+                .orElseThrow(() -> new EntityNotFoundException("User is not an active member of this club"));
+
+        clubMember.setLeftAt(LocalDateTime.now());
+        clubMemberRepository.save(clubMember);
+
+        club.setMemberCount(club.getMemberCount() - 1);
+        club.getMembers().remove(clubMember);
+        clubRepository.save(club);
     }
 }

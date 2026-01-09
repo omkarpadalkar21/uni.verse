@@ -22,25 +22,11 @@ public enum RoleName {
         this.level = level;
     }
 
-    // Check if a particular role can access features of a lower/equal level
-    public boolean canAccess(RoleName targetRole) {
-        return this.level >= targetRole.level;
-    }
-
     // Get all inherited authorities for Spring Security
     public List<GrantedAuthority> getInheritedAuthorities() {
         return Arrays.stream(RoleName.values())
                 .filter(role -> role.level <= this.level)
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                 .collect(Collectors.toList());
-    }
-
-
-    //  Get the next promotion level (for upgrades)
-    public RoleName getNextLevel() {
-        return Arrays.stream(values())
-                .filter(role -> role.level == this.level + 1)
-                .findFirst()
-                .orElse(this);
     }
 }
