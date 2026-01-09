@@ -15,5 +15,5 @@ public interface ClubJoinRequestRepository extends JpaRepository<ClubJoinRequest
 
     Page<ClubJoinRequest> findClubJoinRequestByClub(Club club, Pageable pageable);
 
-    Optional<ClubJoinRequest> findClubJoinRequestByUser(User user);
+    Optional<ClubJoinRequest> findClubJoinRequestByUserAndClub(User user, Club club);
 }
