@@ -5,6 +5,7 @@ import com.omkar.uni.verse.domain.entities.clubs.ClubStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
@@ -19,4 +20,7 @@ public interface ClubRepository extends JpaRepository<Club, UUID> {
 
     Optional<Club> findBySlug(String slug);
 
+    @Modifying
+    @Query("UPDATE Club c SET c.memberCount = c.memberCount - 1 WHERE c.id = :id")
+    void decrementMemberCount(UUID id);
 }

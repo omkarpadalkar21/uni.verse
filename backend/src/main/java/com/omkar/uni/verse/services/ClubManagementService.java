@@ -2,8 +2,9 @@ package com.omkar.uni.verse.services;
 
 import com.omkar.uni.verse.domain.dto.MessageResponse;
 import com.omkar.uni.verse.domain.dto.clubs.ClubMembersDTO;
+import com.omkar.uni.verse.domain.dto.clubs.ClubRejectionRequest;
 import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubRequest;
-import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubResponse;
+import com.omkar.uni.verse.domain.dto.clubs.management.ClubManagementResponse;
 import com.omkar.uni.verse.domain.entities.clubs.ClubJoinRequest;
 import org.springframework.data.domain.Page;
 
@@ -15,15 +16,15 @@ public interface ClubManagementService {
 
     Page<ClubJoinRequest> getAllClubJoinRequests(String slug, int offset, int pageSize);
 
-    JoinClubResponse approveClubJoinRequest(String slug, UUID id);
+    ClubManagementResponse approveClubJoinRequest(String slug, UUID id);
 
-    JoinClubResponse rejectClubJoinRequest(String slug, UUID id);
+    ClubManagementResponse rejectClubJoinRequest(String slug, UUID userId, ClubRejectionRequest rejectionRequest);
 
     Page<ClubMembersDTO> getAllClubMembers(String slug, int offset, int pageSize);
 
-    JoinClubResponse promoteClubMember(String slug, UUID id);
+    ClubManagementResponse promoteClubMember(String slug, UUID id);
 
-    JoinClubResponse removeClubMember(String slug, UUID id);
+    ClubManagementResponse removeClubMember(String slug, UUID id);
 
-    JoinClubResponse leaveClub(String slug);
+    ClubManagementResponse leaveClub(String slug);
 }

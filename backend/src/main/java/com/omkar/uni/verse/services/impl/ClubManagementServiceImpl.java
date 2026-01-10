@@ -2,8 +2,9 @@ package com.omkar.uni.verse.services.impl;
 
 import com.omkar.uni.verse.domain.dto.MessageResponse;
 import com.omkar.uni.verse.domain.dto.clubs.ClubMembersDTO;
+import com.omkar.uni.verse.domain.dto.clubs.ClubRejectionRequest;
 import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubRequest;
-import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubResponse;
+import com.omkar.uni.verse.domain.dto.clubs.management.ClubManagementResponse;
 import com.omkar.uni.verse.domain.entities.clubs.*;
 import com.omkar.uni.verse.domain.entities.user.RoleName;
 import com.omkar.uni.verse.domain.entities.user.User;
@@ -100,7 +101,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
-    public JoinClubResponse approveClubJoinRequest(String slug, UUID id) {
+    public ClubManagementResponse approveClubJoinRequest(String slug, UUID id) {
         Club club = clubRepository.findBySlug(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
@@ -126,6 +127,9 @@ public class ClubManagementServiceImpl implements ClubManagementService {
                 .orElseThrow(() -> new IllegalArgumentException("No club joining request found for User:" + userRequestingToJoinClub.getEmail()));
 
         clubJoinRequest.setStatus(JoinRequestStatus.APPROVED);
+        clubJoinRequest.setReviewedBy(currentUser);
+        clubJoinRequest.setReviewedAt(LocalDateTime.now());
+
         clubJoinRequestRepository.save(clubJoinRequest);
 
         ClubMember newClubMember = ClubMember.builder()
@@ -136,7 +140,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
 
         clubMemberRepository.save(newClubMember);
 
-        return new JoinClubResponse(
+        return new ClubManagementResponse(
                 "Successfully created membership"
                 , ClubRole.MEMBER
         );
@@ -145,7 +149,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
-    public JoinClubResponse rejectClubJoinRequest(String slug, UUID id) {
+    public ClubManagementResponse rejectClubJoinRequest(String slug, UUID userId, ClubRejectionRequest rejectionRequest) {
         Club club = clubRepository.findBySlug(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
@@ -159,7 +163,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
             throw new AccessDeniedException("You are not authorized to update this club!");
         }
 
-        User userRequestingToJoinClub = userRepository.findById(id)
+        User userRequestingToJoinClub = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with club joining request"));
 
         ClubJoinRequest clubJoinRequest = clubJoinRequestRepository
@@ -167,9 +171,12 @@ public class ClubManagementServiceImpl implements ClubManagementService {
                 .orElseThrow(() -> new IllegalArgumentException("No club joining request found for User:" + userRequestingToJoinClub.getEmail()));
 
         clubJoinRequest.setStatus(JoinRequestStatus.REJECTED);
+        clubJoinRequest.setRejectionReason(rejectionRequest.reason());
+        clubJoinRequest.setReviewedBy(currentUser);
+        clubJoinRequest.setReviewedAt(LocalDateTime.now());
         clubJoinRequestRepository.save(clubJoinRequest);
 
-        return new JoinClubResponse(
+        return new ClubManagementResponse(
                 "Successfully rejected membership request"
                 , null
         );
@@ -232,7 +239,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
-    public JoinClubResponse promoteClubMember(String slug, UUID id) {
+    public ClubManagementResponse promoteClubMember(String slug, UUID id) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
@@ -267,7 +274,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
 
         clubLeaderRepository.save(newClubLeader);
 
-        return new JoinClubResponse(
+        return new ClubManagementResponse(
                 "User successfully promoted",
                 ClubRole.LEADER
         );
@@ -276,7 +283,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
-    public JoinClubResponse removeClubMember(String slug, UUID id) {
+    public ClubManagementResponse removeClubMember(String slug, UUID id) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
@@ -298,7 +305,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
         log.info("User {} successfully removed from club '{}' by {}",
                 userToBeRemoved.getEmail(), club.getName(), currentUser.getEmail());
 
-        return new JoinClubResponse(
+        return new ClubManagementResponse(
                 "User successfully removed from club",
                 null
         );
@@ -307,7 +314,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_MEMBER')")
     @Transactional(rollbackFor = Exception.class)
-    public JoinClubResponse leaveClub(String slug) {
+    public ClubManagementResponse leaveClub(String slug) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
@@ -326,7 +333,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
         log.info("User {} successfully left from club '{}'",
                 currentUser.getEmail(), club.getName());
 
-        return new JoinClubResponse(
+        return new ClubManagementResponse(
                 "Successfully left from club",
                 null
         );
@@ -339,8 +346,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
         clubMember.setLeftAt(LocalDateTime.now());
         clubMemberRepository.save(clubMember);
 
-        club.setMemberCount(club.getMemberCount() - 1);
-        club.getMembers().remove(clubMember);
-        clubRepository.save(club);
+        // Atomically decrement member count to avoid race conditions
+        clubRepository.decrementMemberCount(club.getId());
     }
 }
