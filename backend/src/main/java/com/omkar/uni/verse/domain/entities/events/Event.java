@@ -2,9 +2,11 @@ package com.omkar.uni.verse.domain.entities.events;
 
 import com.omkar.uni.verse.domain.entities.clubs.Club;
 import com.omkar.uni.verse.domain.entities.user.User;
+import io.hypersistence.utils.hibernate.type.array.StringArrayType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
+import org.hibernate.annotations.Type;
 import org.hibernate.validator.constraints.URL;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -66,7 +68,7 @@ public class Event {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "venue_id", nullable = false)
-    private Venue venue;
+    private EventVenue venue;
 
     @URL
     @Column(length = 500)
@@ -123,6 +125,7 @@ public class Event {
     @Column(length = 20)
     private EventCategory category;
 
+    @Type(StringArrayType.class)
     @Column(name = "tags", columnDefinition = "text[]")
     private String[] tags = new String[0];
 

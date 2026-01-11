@@ -2,12 +2,14 @@ package com.omkar.uni.verse.controller;
 
 import com.omkar.uni.verse.domain.dto.PageResponse;
 import com.omkar.uni.verse.domain.dto.clubs.ClubDTO;
+import com.omkar.uni.verse.domain.dto.clubs.ClubRegistrationRequest;
 import com.omkar.uni.verse.domain.dto.clubs.ClubResponse;
 import com.omkar.uni.verse.domain.dto.clubs.ClubUpdateRequest;
 import com.omkar.uni.verse.services.ClubService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +19,14 @@ import org.springframework.web.bind.annotation.*;
 public class ClubController {
 
     private final ClubService clubService;
+
+    @PostMapping
+    public ResponseEntity<ClubResponse> registerNewClub(@RequestBody @Valid ClubRegistrationRequest registrationRequest) {
+        return new ResponseEntity<>(
+                clubService.registerNewClub(registrationRequest),
+                HttpStatus.CREATED
+        );
+    }
 
     @GetMapping("/{offset}/{pageSize}")
     public ResponseEntity<PageResponse<ClubDTO>> getAllClubs(@PathVariable int offset, @PathVariable int pageSize) {
