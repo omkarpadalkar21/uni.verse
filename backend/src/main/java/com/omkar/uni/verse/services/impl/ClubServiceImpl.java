@@ -35,6 +35,7 @@ public class ClubServiceImpl implements ClubService {
 
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
+    @Transactional(rollbackFor = Exception.class)
     public ClubResponse registerNewClub(ClubRegistrationRequest registrationRequest) {
         log.debug("Attempting to register new club with slug: {}", registrationRequest.getSlug());
 
@@ -106,6 +107,7 @@ public class ClubServiceImpl implements ClubService {
 
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
+    @Transactional(rollbackFor = Exception.class)
     public ClubDTO updateClubBySlug(String slug, ClubUpdateRequest clubUpdateRequest) {
         log.debug("Attempting to update club with slug: {}", slug);
 
@@ -143,8 +145,8 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_FACULTY')")
+    @Transactional(rollbackFor = Exception.class)
     public ClubResponse approveClubBySlug(String slug) {
         log.debug("Attempting to approve club with slug: {}", slug);
 
@@ -186,8 +188,8 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_FACULTY')")
+    @Transactional(rollbackFor = Exception.class)
     public ClubResponse rejectClubBySlug(String slug) {
         log.debug("Attempting to reject club with slug: {}", slug);
 
@@ -229,8 +231,8 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_FACULTY')")
+    @Transactional(rollbackFor = Exception.class)
     public ClubResponse suspendClubBySlug(String slug) {
         log.debug("Attempting to suspend club with slug: {}", slug);
 
