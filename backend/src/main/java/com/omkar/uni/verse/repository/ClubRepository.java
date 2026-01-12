@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -23,4 +24,7 @@ public interface ClubRepository extends JpaRepository<Club, UUID> {
     @Modifying
     @Query("UPDATE Club c SET c.memberCount = c.memberCount - 1 WHERE c.id = :id")
     void decrementMemberCount(UUID id);
+
+    @Query("SELECT c FROM Club c LEFT JOIN FETCH c.leaders WHERE c.slug = :slug")
+    Optional<Club> findBySlugWithLeaders(@Param("slug") String slug);
 }

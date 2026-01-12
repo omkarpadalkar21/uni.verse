@@ -3,6 +3,7 @@ package com.omkar.uni.verse.domain.dto.events;
 import com.omkar.uni.verse.domain.entities.events.EventRegistrationMode;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,7 +12,6 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class EventUpdateRequest {
-    //    title, description, startTime, capacity, registrationMode
 
     @NotBlank
     private String title;
@@ -31,7 +31,14 @@ public class EventUpdateRequest {
         return endTime.isAfter(startTime);
     }
 
+    @NotNull
     private Integer capacity;
 
+    @AssertTrue(message = "Capacity should be greater than 0")
+    public boolean isCapacityValid() {
+        return capacity > 0;
+    }
+
+    @NotNull
     private EventRegistrationMode registrationMode;
 }

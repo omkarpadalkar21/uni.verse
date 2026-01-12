@@ -57,6 +57,8 @@ public class EventCreateRequest {
     @NotNull
     private EventRegistrationMode registrationMode = EventRegistrationMode.AUTO_APPROVE;
 
+    private LocalDateTime registrationDeadline;
+
     @NotNull
     private EventVisibility visibility = EventVisibility.PUBLIC;
 
@@ -71,4 +73,6 @@ public class EventCreateRequest {
 
     @NotNull
     private EventCategory category;
+
+    private String[] tags;
 }
