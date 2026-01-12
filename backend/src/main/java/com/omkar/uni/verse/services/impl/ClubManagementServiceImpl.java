@@ -81,7 +81,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class, readOnly = true)
     public Page<ClubJoinRequest> getAllClubJoinRequests(String slug, int offset, int pageSize) {
-        Club club = clubRepository.findBySlug(slug)
+        Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
         User currentUser = (User) SecurityContextHolder.getContext()
@@ -102,7 +102,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
     public ClubManagementResponse approveClubJoinRequest(String slug, UUID id) {
-        Club club = clubRepository.findBySlug(slug)
+        Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
         User currentUser = (User) SecurityContextHolder.getContext()
@@ -150,7 +150,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
     public ClubManagementResponse rejectClubJoinRequest(String slug, UUID userId, ClubRejectionRequest rejectionRequest) {
-        Club club = clubRepository.findBySlug(slug)
+        Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
         User currentUser = (User) SecurityContextHolder.getContext()
@@ -186,7 +186,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @PreAuthorize("hasAnyAuthority('ROLE_CLUB_LEADER','ROLE_CLUB_MEMBER')")
     @Transactional(rollbackFor = Exception.class, readOnly = true)
     public Page<ClubMembersDTO> getAllClubMembers(String slug, int offset, int pageSize) {
-        Club club = clubRepository.findBySlug(slug)
+        Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
         User currentUser = (User) SecurityContextHolder.getContext()
@@ -244,7 +244,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
                 .getAuthentication()
                 .getPrincipal();
 
-        Club club = clubRepository.findBySlug(slug)
+        Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
         if (club.getLeaders().stream().noneMatch(clubLeader -> clubLeader.getUser().equals(currentUser))) {
@@ -288,7 +288,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
                 .getAuthentication()
                 .getPrincipal();
 
-        Club club = clubRepository.findBySlug(slug)
+        Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
         if (club.getLeaders().stream().noneMatch(clubLeader -> clubLeader.getUser().equals(currentUser))) {
@@ -319,7 +319,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
                 .getAuthentication()
                 .getPrincipal();
 
-        Club club = clubRepository.findBySlug(slug)
+        Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
         if (club.getMembers().stream().noneMatch(clubMember -> clubMember.getUser().equals(currentUser))) {
