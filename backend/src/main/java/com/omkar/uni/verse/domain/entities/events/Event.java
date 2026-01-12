@@ -64,7 +64,7 @@ public class Event {
 
     // Venue
     @Enumerated(EnumType.STRING)
-    private VenueType type;
+    private VenueType venueType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "venue_id", nullable = false)
@@ -155,4 +155,7 @@ public class Event {
 
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

@@ -56,7 +56,7 @@ public class EventResponse {
 
     // Relationships
     private ClubSummary club;
-    private UUID createdById;
+    private String createdByUser;
 
     // Timestamps
     private LocalDateTime createdAt;

@@ -117,24 +117,6 @@ public class User implements UserDetails {
     @Column(name = "role", length = 20, nullable = false)
     private RoleName role = RoleName.USER;
 
-    // Helper methods
-    @Transient
-    public boolean hasRole(RoleName roleName) {
-        return this.role == roleName || this.role.canAccess(roleName);
-    }
-
-
-    // Check if user can perform admin actions (FACULTY or SUPERADMIN)
-    @Transient
-    public boolean isAdmin() {
-        return this.role.canAccess(RoleName.FACULTY);
-    }
-
-    // Promote user to next role level
-    public void promoteRole() {
-        this.role = this.role.getNextLevel();
-    }
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return role.getInheritedAuthorities();

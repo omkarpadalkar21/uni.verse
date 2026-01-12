@@ -1,13 +1,14 @@
 package com.omkar.uni.verse.services;
 
 import com.omkar.uni.verse.domain.dto.MessageResponse;
+import com.omkar.uni.verse.domain.dto.events.EventCancelRequest;
 import com.omkar.uni.verse.domain.dto.events.EventCreateRequest;
 import com.omkar.uni.verse.domain.dto.events.EventResponse;
 import com.omkar.uni.verse.domain.dto.events.EventUpdateRequest;
 import com.omkar.uni.verse.domain.entities.events.EventCategory;
 import org.springframework.data.domain.Page;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 
@@ -16,18 +17,18 @@ import java.util.UUID;
 //}
 
 public interface EventManagementService {
-    EventResponse createEvent(EventCreateRequest eventCreateRequest);
+    EventResponse createEvent(String slug, EventCreateRequest eventCreateRequest);
 
     Page<EventResponse> getAllEvents(UUID clubId, EventCategory category,
-                                     LocalDate date, int page, int size);
+                                     LocalDateTime dateTime, int page, int size);
 
     EventResponse getEventById(UUID id);
 
-    EventResponse updateEventById(EventUpdateRequest eventUpdationRequest);
+    EventResponse updateEventById(String slug, UUID eventId, EventUpdateRequest eventUpdateRequest);
 
-    MessageResponse deleteEventById(UUID id);
+    MessageResponse deleteEventById(String slug, UUID eventId);
 
-    EventResponse publishEventsById(UUID id);
+    EventResponse publishEventsById(String slug, UUID eventId);
 
-    EventResponse cancelEventsById(UUID id);
+    EventResponse cancelEventsById(String slug, UUID eventId, EventCancelRequest eventCancelRequest);
 }
