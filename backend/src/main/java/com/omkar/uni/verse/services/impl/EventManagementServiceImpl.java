@@ -6,13 +6,11 @@ import com.omkar.uni.verse.domain.dto.events.EventCreateRequest;
 import com.omkar.uni.verse.domain.dto.events.EventResponse;
 import com.omkar.uni.verse.domain.dto.events.EventUpdateRequest;
 import com.omkar.uni.verse.domain.entities.clubs.Club;
-import com.omkar.uni.verse.domain.entities.events.Event;
-import com.omkar.uni.verse.domain.entities.events.EventCategory;
-import com.omkar.uni.verse.domain.entities.events.EventStatus;
-import com.omkar.uni.verse.domain.entities.events.EventVenue;
+import com.omkar.uni.verse.domain.entities.events.*;
 import com.omkar.uni.verse.domain.entities.user.User;
 import com.omkar.uni.verse.mappers.EventMapper;
 import com.omkar.uni.verse.repository.ClubRepository;
+import com.omkar.uni.verse.repository.EventRegistrationRepository;
 import com.omkar.uni.verse.repository.EventRepository;
 import com.omkar.uni.verse.repository.EventVenueRepository;
 import com.omkar.uni.verse.services.EventManagementService;
@@ -39,6 +37,7 @@ public class EventManagementServiceImpl implements EventManagementService {
     private final EventMapper eventMapper;
     private final EventVenueRepository eventVenueRepository;
     private final EventRepository eventRepository;
+    private final EventRegistrationRepository eventRegistrationRepository;
 
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
@@ -89,8 +88,30 @@ public class EventManagementServiceImpl implements EventManagementService {
     @Override
     @Transactional(readOnly = true)
     public EventResponse getEventById(UUID id) {
-        return eventRepository.findById(id).map(eventMapper::toEventResponse)
+        Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        
+        // Check if user is authenticated and registered for this event
+        boolean isRegistered = false;
+        try {
+            Object principal = SecurityContextHolder.getContext()
+                    .getAuthentication()
+                    .getPrincipal();
+            
+            // Only check registration if user is authenticated (not anonymous)
+            if (principal instanceof User currentUser) {
+                isRegistered = eventRegistrationRepository.existsByEventAndUserAndStatus(
+                        event, 
+                        currentUser, 
+                        EventRegistrationStatus.APPROVED
+                );
+            }
+        } catch (Exception e) {
+            // If authentication context is not available or user is anonymous, isRegistered remains false
+            log.debug("Could not determine user registration status: {}", e.getMessage());
+        }
+        
+        return eventMapper.toEventResponse(event, isRegistered);
     }
 
     @Override
@@ -131,6 +152,10 @@ public class EventManagementServiceImpl implements EventManagementService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found for updating"));
 
+        if (!event.getClub().getSlug().equals(slug)) {
+            throw new AccessDeniedException("Event does not belong to this club");
+        }
+
         // soft deleting the event
         event.setStatus(EventStatus.DELETED);
         event.setDeletedAt(LocalDateTime.now());
@@ -149,6 +174,10 @@ public class EventManagementServiceImpl implements EventManagementService {
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found for updating"));
+
+        if (!event.getClub().getSlug().equals(slug)) {
+            throw new AccessDeniedException("Event does not belong to this club");
+        }
 
         if (event.getStatus() == EventStatus.PUBLISHED) {
             throw new IllegalStateException("Event is already published");
@@ -169,6 +198,10 @@ public class EventManagementServiceImpl implements EventManagementService {
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found for updating"));
+
+        if (!event.getClub().getSlug().equals(slug)) {
+            throw new AccessDeniedException("Event does not belong to this club");
+        }
 
         if (event.getStatus() == EventStatus.CANCELLED) {
             throw new IllegalStateException("Event is already cancelled");

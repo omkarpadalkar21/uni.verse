@@ -12,5 +12,11 @@ public interface EventMapper {
 
     @Mapping(target = "type", source = "event.venueType")
     @Mapping(target = "createdByUser", source = "event.createdBy.email")
+    @Mapping(target = "isRegistered", ignore = true)
     EventResponse toEventResponse(Event event);
+    
+    @Mapping(target = "type", source = "event.venueType")
+    @Mapping(target = "createdByUser", source = "event.createdBy.email")
+    @Mapping(target = "isRegistered", source = "isRegistered")
+    EventResponse toEventResponse(Event event, Boolean isRegistered);
 }
