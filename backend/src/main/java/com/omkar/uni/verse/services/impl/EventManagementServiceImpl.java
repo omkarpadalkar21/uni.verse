@@ -49,7 +49,7 @@ public class EventManagementServiceImpl implements EventManagementService {
                 .getAuthentication()
                 .getPrincipal();
 
-        Club club = clubRepository.findBySlug(slug)
+        Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
         if (club.getLeaders().stream().noneMatch(clubLeader -> clubLeader.getUser().equals(currentUser))) {
@@ -90,19 +90,19 @@ public class EventManagementServiceImpl implements EventManagementService {
     public EventResponse getEventById(UUID id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found"));
-        
+
         // Check if user is authenticated and registered for this event
         boolean isRegistered = false;
         try {
             Object principal = SecurityContextHolder.getContext()
                     .getAuthentication()
                     .getPrincipal();
-            
+
             // Only check registration if user is authenticated (not anonymous)
             if (principal instanceof User currentUser) {
                 isRegistered = eventRegistrationRepository.existsByEventAndUserAndStatus(
-                        event, 
-                        currentUser, 
+                        event,
+                        currentUser,
                         EventRegistrationStatus.APPROVED
                 );
             }
@@ -110,7 +110,7 @@ public class EventManagementServiceImpl implements EventManagementService {
             // If authentication context is not available or user is anonymous, isRegistered remains false
             log.debug("Could not determine user registration status: {}", e.getMessage());
         }
-        
+
         return eventMapper.toEventResponse(event, isRegistered);
     }
 
@@ -221,7 +221,7 @@ public class EventManagementServiceImpl implements EventManagementService {
                 .getAuthentication()
                 .getPrincipal();
 
-        Club club = clubRepository.findBySlug(slug)
+        Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
         if (club.getLeaders().stream().noneMatch(clubLeader -> clubLeader.getUser().equals(currentUser))) {
