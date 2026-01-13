@@ -25,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -37,13 +38,16 @@ public class EventManagementServiceImpl implements EventManagementService {
     private final EventMapper eventMapper;
     private final EventVenueRepository eventVenueRepository;
     private final EventRepository eventRepository;
-    private final EventRegistrationRepository eventRegistrationRepository;
 
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
     public EventResponse createEvent(String slug, EventCreateRequest eventCreateRequest) {
         log.debug("Attempting to create new event for club with slug: {}", slug);
+
+        if (eventCreateRequest.getIsPaid() && eventCreateRequest.getBasePrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Paid events must have a base price");
+        }
 
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -73,46 +77,7 @@ public class EventManagementServiceImpl implements EventManagementService {
         return eventMapper.toEventResponse(newEvent);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<EventResponse> getAllEvents(UUID clubId, EventCategory category, LocalDateTime dateTime, int page, int size) {
-        Club club = null;
-        if (clubId != null) {
-            club = clubRepository.findById(clubId).orElse(null);
-        }
-        return eventRepository.findAllByClubAndCategoryAndEndTimeIsAfterAndCancelledAtIsNullAndStatus(
-                club, category, dateTime, EventStatus.PUBLISHED, PageRequest.of(page, size)
-        ).map(eventMapper::toEventResponse);
-    }
 
-    @Override
-    @Transactional(readOnly = true)
-    public EventResponse getEventById(UUID id) {
-        Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
-
-        // Check if user is authenticated and registered for this event
-        boolean isRegistered = false;
-        try {
-            Object principal = SecurityContextHolder.getContext()
-                    .getAuthentication()
-                    .getPrincipal();
-
-            // Only check registration if user is authenticated (not anonymous)
-            if (principal instanceof User currentUser) {
-                isRegistered = eventRegistrationRepository.existsByEventAndUserAndStatus(
-                        event,
-                        currentUser,
-                        EventRegistrationStatus.APPROVED
-                );
-            }
-        } catch (Exception e) {
-            // If authentication context is not available or user is anonymous, isRegistered remains false
-            log.debug("Could not determine user registration status: {}", e.getMessage());
-        }
-
-        return eventMapper.toEventResponse(event, isRegistered);
-    }
 
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
