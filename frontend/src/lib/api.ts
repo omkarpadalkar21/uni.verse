@@ -112,3 +112,193 @@ export const authApi = {
     return response.data;
   },
 };
+
+// ============ Type Imports ============
+import type { PageResponse, Page, MessageResponse } from '@/types/api';
+import type {
+  ClubDTO,
+  ClubResponse,
+  ClubRegistrationRequest,
+  ClubUpdateRequest,
+  ClubMembersDTO,
+  ClubJoinRequest,
+  ClubManagementResponse,
+  JoinClubRequest,
+  ClubRejectionRequest,
+} from '@/types/club';
+import type {
+  EventResponse,
+  EventCreateRequest,
+  EventUpdateRequest,
+  EventCancelRequest,
+  EventCategory,
+} from '@/types/event';
+
+// ============ Club API ============
+export const clubApi = {
+  /** Get paginated list of clubs */
+  getClubs: async (offset: number, pageSize: number): Promise<PageResponse<ClubDTO>> => {
+    const response = await apiClient.get<PageResponse<ClubDTO>>(`/api/v1/clubs/${offset}/${pageSize}`);
+    return response.data;
+  },
+
+  /** Get club details by slug */
+  getClubBySlug: async (slug: string): Promise<ClubDTO> => {
+    const response = await apiClient.get<ClubDTO>(`/api/v1/clubs/${slug}`);
+    return response.data;
+  },
+
+  /** Register a new club */
+  registerClub: async (data: ClubRegistrationRequest): Promise<ClubResponse> => {
+    const response = await apiClient.post<ClubResponse>('/api/v1/clubs', data);
+    return response.data;
+  },
+
+  /** Update club by slug */
+  updateClub: async (slug: string, data: ClubUpdateRequest): Promise<ClubDTO> => {
+    const response = await apiClient.put<ClubDTO>(`/api/v1/clubs/${slug}`, data);
+    return response.data;
+  },
+
+  /** Approve club (admin only) */
+  approveClub: async (slug: string): Promise<ClubResponse> => {
+    const response = await apiClient.put<ClubResponse>(`/api/v1/clubs/${slug}/approve`);
+    return response.data;
+  },
+
+  /** Reject club (admin only) */
+  rejectClub: async (slug: string): Promise<ClubResponse> => {
+    const response = await apiClient.put<ClubResponse>(`/api/v1/clubs/${slug}/reject`);
+    return response.data;
+  },
+
+  /** Suspend club (admin only) */
+  suspendClub: async (slug: string): Promise<ClubResponse> => {
+    const response = await apiClient.put<ClubResponse>(`/api/v1/clubs/${slug}/suspend`);
+    return response.data;
+  },
+};
+
+// ============ Club Management API ============
+export const clubManagementApi = {
+  /** Create a join request for a club */
+  createJoinRequest: async (slug: string, data: JoinClubRequest): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(`/api/v1/clubs/${slug}/join-requests`, data);
+    return response.data;
+  },
+
+  /** Get all join requests for a club (leaders only) */
+  getJoinRequests: async (slug: string, page: number = 0, size: number = 20): Promise<Page<ClubJoinRequest>> => {
+    const response = await apiClient.get<Page<ClubJoinRequest>>(
+      `/api/v1/clubs/${slug}/join-requests`,
+      { params: { page, size } }
+    );
+    return response.data;
+  },
+
+  /** Approve a join request */
+  approveJoinRequest: async (slug: string, userId: string): Promise<ClubManagementResponse> => {
+    const response = await apiClient.put<ClubManagementResponse>(
+      `/api/v1/clubs/${slug}/join-requests/${userId}/approve`
+    );
+    return response.data;
+  },
+
+  /** Reject a join request */
+  rejectJoinRequest: async (
+    slug: string,
+    userId: string,
+    data: ClubRejectionRequest
+  ): Promise<ClubManagementResponse> => {
+    const response = await apiClient.put<ClubManagementResponse>(
+      `/api/v1/clubs/${slug}/join-requests/${userId}/reject`,
+      data
+    );
+    return response.data;
+  },
+
+  /** Get all members of a club */
+  getMembers: async (slug: string, page: number = 0, size: number = 20): Promise<Page<ClubMembersDTO>> => {
+    const response = await apiClient.get<Page<ClubMembersDTO>>(
+      `/api/v1/clubs/${slug}/members`,
+      { params: { page, size } }
+    );
+    return response.data;
+  },
+
+  /** Promote a member to leader */
+  promoteMember: async (slug: string, userId: string): Promise<ClubManagementResponse> => {
+    const response = await apiClient.put<ClubManagementResponse>(
+      `/api/v1/clubs/${slug}/members/${userId}/promote`
+    );
+    return response.data;
+  },
+
+  /** Remove a member from club */
+  removeMember: async (slug: string, userId: string): Promise<ClubManagementResponse> => {
+    const response = await apiClient.delete<ClubManagementResponse>(
+      `/api/v1/clubs/${slug}/members/${userId}`
+    );
+    return response.data;
+  },
+
+  /** Leave a club */
+  leaveClub: async (slug: string): Promise<ClubManagementResponse> => {
+    const response = await apiClient.post<ClubManagementResponse>(`/api/v1/clubs/${slug}/leave`);
+    return response.data;
+  },
+};
+
+// ============ Event API ============
+export const eventApi = {
+  /** Get paginated list of events with filters */
+  getEvents: async (params: {
+    clubId?: string;
+    category?: EventCategory;
+    dateTime: string;
+    offset?: number;
+    pageSize?: number;
+  }): Promise<PageResponse<EventResponse>> => {
+    const response = await apiClient.get<PageResponse<EventResponse>>('/api/v1/events', { params });
+    return response.data;
+  },
+
+  /** Get event by ID */
+  getEventById: async (id: string): Promise<EventResponse> => {
+    const response = await apiClient.get<EventResponse>(`/api/v1/events/${id}`);
+    return response.data;
+  },
+};
+
+// ============ Event Management API ============
+export const eventManagementApi = {
+  /** Create a new event */
+  createEvent: async (slug: string, data: EventCreateRequest): Promise<EventResponse> => {
+    const response = await apiClient.post<EventResponse>(`/api/v1/${slug}/events`, data);
+    return response.data;
+  },
+
+  /** Update an event */
+  updateEvent: async (slug: string, eventId: string, data: EventUpdateRequest): Promise<EventResponse> => {
+    const response = await apiClient.put<EventResponse>(`/api/v1/${slug}/events/${eventId}`, data);
+    return response.data;
+  },
+
+  /** Delete an event */
+  deleteEvent: async (slug: string, eventId: string): Promise<MessageResponse> => {
+    const response = await apiClient.delete<MessageResponse>(`/api/v1/${slug}/events/${eventId}`);
+    return response.data;
+  },
+
+  /** Publish an event */
+  publishEvent: async (slug: string, eventId: string): Promise<EventResponse> => {
+    const response = await apiClient.put<EventResponse>(`/api/v1/${slug}/events/${eventId}/publish`);
+    return response.data;
+  },
+
+  /** Cancel an event */
+  cancelEvent: async (slug: string, eventId: string, data: EventCancelRequest): Promise<EventResponse> => {
+    const response = await apiClient.put<EventResponse>(`/api/v1/${slug}/events/${eventId}/cancelled`, data);
+    return response.data;
+  },
+};
