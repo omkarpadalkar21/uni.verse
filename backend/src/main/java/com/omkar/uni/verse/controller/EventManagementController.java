@@ -1,13 +1,14 @@
 package com.omkar.uni.verse.controller;
 
 import com.omkar.uni.verse.domain.dto.MessageResponse;
-import com.omkar.uni.verse.domain.dto.events.EventCancelRequest;
-import com.omkar.uni.verse.domain.dto.events.EventCreateRequest;
-import com.omkar.uni.verse.domain.dto.events.EventResponse;
-import com.omkar.uni.verse.domain.dto.events.EventUpdateRequest;
+import com.omkar.uni.verse.domain.dto.PageResponse;
+import com.omkar.uni.verse.domain.dto.events.*;
+import com.omkar.uni.verse.domain.entities.events.EventRegistrationStatus;
 import com.omkar.uni.verse.services.EventManagementService;
+import com.omkar.uni.verse.services.EventRegistrationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class EventManagementController {
     private final EventManagementService eventManagementService;
+    private final EventRegistrationService eventRegistrationService;
 
     @PostMapping
     public ResponseEntity<EventResponse> createEvent(
@@ -61,4 +63,5 @@ public class EventManagementController {
     ) {
         return ResponseEntity.ok().body(eventManagementService.cancelEventsById(slug, eventId, eventCancelRequest));
     }
+
 }

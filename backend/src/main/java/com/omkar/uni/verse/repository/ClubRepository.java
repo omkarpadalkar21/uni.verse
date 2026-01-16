@@ -21,9 +21,17 @@ public interface ClubRepository extends JpaRepository<Club, UUID> {
 
     Optional<Club> findBySlug(String slug);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE Club c SET c.memberCount = c.memberCount - 1 WHERE c.id = :id")
     void decrementMemberCount(UUID id);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Club C SET c.eventCount = c.eventCount + 1 where c.id = :id")
+    void incrementEventCount(UUID id);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Club C SET c.eventCount = c.eventCount - 1 where c.slug = :slug")
+    void decrementEventCount(String slug);
 
     @Query("SELECT c FROM Club c LEFT JOIN FETCH c.leaders WHERE c.slug = :slug")
     Optional<Club> findBySlugWithLeaders(@Param("slug") String slug);

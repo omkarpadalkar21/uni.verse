@@ -41,13 +41,17 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public EventRegistrationResponse createEventRegistration(UUID eventId) {
+    public EventRegistrationResponse createEventRegistration(String slug, UUID eventId) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+
+        if (!event.getClub().getSlug().equals(slug)) {
+            throw new AccessDeniedException("Event does not belong to this club");
+        }
 
         EventRegistrationStatus registrationStatus = event.getRegistrationMode() == EventRegistrationMode.AUTO_APPROVE ?
                 EventRegistrationStatus.APPROVED : EventRegistrationStatus.PENDING;
@@ -120,11 +124,11 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
                 : eventRegistrationRepository.findEventRegistrationByUser(currentUser, PageRequest.of(offset, pageSize));
 
         return registrations.map(eventRegistration -> EventRegistrationSummary.builder()
-                        .eventSummary(eventMapper.toEventSummary(eventRegistration.getEvent()))
-                        .clubName(eventRegistration.getEvent().getClub().getName())
-                        .registeredAt(eventRegistration.getRegisteredAt())
-                        .registrationStatus(eventRegistration.getStatus())
-                        .build());
+                .eventSummary(eventMapper.toEventSummary(eventRegistration.getEvent()))
+                .clubName(eventRegistration.getEvent().getClub().getName())
+                .registeredAt(eventRegistration.getRegisteredAt())
+                .registrationStatus(eventRegistration.getStatus())
+                .build());
     }
 
     @Override
@@ -213,13 +217,17 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public MessageResponse cancelEventRegistration(UUID eventId, CancelEventRegistrationRequest cancelEventRegistrationRequest) {
+    public MessageResponse cancelEventRegistration(String slug, UUID eventId, CancelEventRegistrationRequest cancelEventRegistrationRequest) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+
+        if (!event.getClub().getSlug().equals(slug)) {
+            throw new AccessDeniedException("Event does not belong to this club");
+        }
 
         EventRegistration registration = eventRegistrationRepository.findByUserAndEvent(currentUser, event)
                 .orElseThrow(() -> new EntityNotFoundException("Event registration with the requested user not found"));

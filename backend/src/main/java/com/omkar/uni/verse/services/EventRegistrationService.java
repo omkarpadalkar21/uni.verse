@@ -11,7 +11,7 @@ import org.springframework.data.domain.Page;
 import java.util.UUID;
 
 public interface EventRegistrationService {
-    EventRegistrationResponse createEventRegistration(UUID id);
+    EventRegistrationResponse createEventRegistration(String slug, UUID id);
 
     Page<EventRegistrationSummary> getClubEventRegistrations(String slug, UUID eventId, EventRegistrationStatus registrationStatus, int offset, int pageSize);
 
@@ -22,5 +22,5 @@ public interface EventRegistrationService {
 
     EventRegistrationResponse rejectEventRegistration(String slug, UUID eventId, UUID userId, RejectEventRegistrationRequest rejectEventRegistrationRequest);
 
-    MessageResponse cancelEventRegistration(UUID eventId, CancelEventRegistrationRequest cancelEventRegistrationRequest);
+    MessageResponse cancelEventRegistration(String slug, UUID eventId, CancelEventRegistrationRequest cancelEventRegistrationRequest);
 }

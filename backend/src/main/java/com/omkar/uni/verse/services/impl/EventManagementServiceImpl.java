@@ -1,33 +1,34 @@
 package com.omkar.uni.verse.services.impl;
 
-import com.omkar.uni.verse.domain.dto.MessageResponse;
-import com.omkar.uni.verse.domain.dto.events.EventCancelRequest;
-import com.omkar.uni.verse.domain.dto.events.EventCreateRequest;
-import com.omkar.uni.verse.domain.dto.events.EventResponse;
-import com.omkar.uni.verse.domain.dto.events.EventUpdateRequest;
-import com.omkar.uni.verse.domain.entities.clubs.Club;
-import com.omkar.uni.verse.domain.entities.events.*;
-import com.omkar.uni.verse.domain.entities.user.User;
-import com.omkar.uni.verse.mappers.EventMapper;
-import com.omkar.uni.verse.repository.ClubRepository;
-import com.omkar.uni.verse.repository.EventRegistrationRepository;
-import com.omkar.uni.verse.repository.EventRepository;
-import com.omkar.uni.verse.repository.EventVenueRepository;
-import com.omkar.uni.verse.services.EventManagementService;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.UUID;
+import com.omkar.uni.verse.domain.dto.MessageResponse;
+import com.omkar.uni.verse.domain.dto.events.EventCancelRequest;
+import com.omkar.uni.verse.domain.dto.events.EventCreateRequest;
+import com.omkar.uni.verse.domain.dto.events.EventResponse;
+import com.omkar.uni.verse.domain.dto.events.EventUpdateRequest;
+import com.omkar.uni.verse.domain.entities.clubs.Club;
+import com.omkar.uni.verse.domain.entities.events.Event;
+import com.omkar.uni.verse.domain.entities.events.EventStatus;
+import com.omkar.uni.verse.domain.entities.events.EventVenue;
+import com.omkar.uni.verse.domain.entities.user.User;
+import com.omkar.uni.verse.mappers.EventMapper;
+import com.omkar.uni.verse.repository.ClubRepository;
+import com.omkar.uni.verse.repository.EventRepository;
+import com.omkar.uni.verse.repository.EventVenueRepository;
+import com.omkar.uni.verse.services.EventManagementService;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -73,10 +74,12 @@ public class EventManagementServiceImpl implements EventManagementService {
 
         eventRepository.save(newEvent);
 
+        club.getEvents().add(newEvent);
+        clubRepository.incrementEventCount(club.getId());
+
         log.info("Successfully created new event for club: {} by user: {}", club.getName(), currentUser.getEmail());
         return eventMapper.toEventResponse(newEvent);
     }
-
 
 
     @Override
@@ -126,6 +129,8 @@ public class EventManagementServiceImpl implements EventManagementService {
         event.setDeletedAt(LocalDateTime.now());
 
         eventRepository.save(event);
+
+        clubRepository.decrementEventCount(slug);
 
         return new MessageResponse("Event successfully deleted");
     }

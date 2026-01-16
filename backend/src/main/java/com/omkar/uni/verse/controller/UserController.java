@@ -1,11 +1,16 @@
 package com.omkar.uni.verse.controller;
 
 import com.omkar.uni.verse.domain.dto.MessageResponse;
+import com.omkar.uni.verse.domain.dto.PageResponse;
+import com.omkar.uni.verse.domain.dto.events.EventRegistrationSummary;
 import com.omkar.uni.verse.domain.dto.user.GetUserProfileResponse;
 import com.omkar.uni.verse.domain.dto.user.UpdateUserProfileRequest;
+import com.omkar.uni.verse.domain.entities.events.EventRegistrationStatus;
+import com.omkar.uni.verse.services.EventRegistrationService;
 import com.omkar.uni.verse.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final EventRegistrationService eventRegistrationService;
 
     @GetMapping("/profile/{email_id}")
     public ResponseEntity<GetUserProfileResponse> getUserProfile(@PathVariable String email_id) {
@@ -28,4 +34,18 @@ public class UserController {
         return ResponseEntity.ok(new MessageResponse("Profile updated successfully"));
     }
 
+    @GetMapping("/registrations")
+    public ResponseEntity<PageResponse<EventRegistrationSummary>> getUserEventRegistrations(
+            @RequestBody EventRegistrationStatus status,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        Page<EventRegistrationSummary> page = eventRegistrationService.getUserEventRegistrations(status, offset, pageSize);
+        return ResponseEntity.ok().body(
+                new PageResponse<>(
+                        page.getContent(),
+                        page.getTotalPages()
+                )
+        );
+    }
 }
