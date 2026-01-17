@@ -66,7 +66,7 @@ docker compose -f docker-compose.dev.yml restart universe-app
 ./dev.sh logs <service>  # Show logs for specific service
 ./dev.sh status      # Show status of all services
 ./dev.sh clean       # Stop services and remove volumes
-./dev.sh help        # Show help message
+./dev.sh help        # Show help suspensionReason
 ```
 
 ### Examples
