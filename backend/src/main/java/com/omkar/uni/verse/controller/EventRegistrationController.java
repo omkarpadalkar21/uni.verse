@@ -8,6 +8,7 @@ import com.omkar.uni.verse.domain.dto.events.EventRegistrationSummary;
 import com.omkar.uni.verse.domain.dto.events.RejectEventRegistrationRequest;
 import com.omkar.uni.verse.domain.entities.events.EventRegistrationStatus;
 import com.omkar.uni.verse.services.EventRegistrationService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -31,11 +32,11 @@ public class EventRegistrationController {
         );
     }
 
-    @GetMapping("/{id}/registrations")
+    @GetMapping("/registrations")
     public ResponseEntity<PageResponse<EventRegistrationSummary>> getClubEventRegistrations(
             @PathVariable String slug,
             @PathVariable UUID id,
-            @RequestBody(required = false) EventRegistrationStatus registrationStatus,
+            @RequestParam(required = false) EventRegistrationStatus registrationStatus,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int size
     ) {
@@ -55,12 +56,12 @@ public class EventRegistrationController {
         return ResponseEntity.ok().body(eventRegistrationService.approveEventRegistration(slug, id, userId));
     }
 
-    @PutMapping("/registrations/{userId}/approve")
+    @PutMapping("/registrations/{userId}/reject")
     public ResponseEntity<EventRegistrationResponse> rejectEventRegistration(
             @PathVariable String slug,
             @PathVariable UUID id,
             @PathVariable UUID userId,
-            @RequestBody RejectEventRegistrationRequest rejectEventRegistrationRequest
+            @RequestBody @Valid RejectEventRegistrationRequest rejectEventRegistrationRequest
     ) {
         return ResponseEntity.ok().body(eventRegistrationService.rejectEventRegistration(
                 slug, id, userId, rejectEventRegistrationRequest)
@@ -71,7 +72,7 @@ public class EventRegistrationController {
     public ResponseEntity<MessageResponse> cancelEventRegistration(
             @PathVariable String slug,
             @PathVariable UUID id,
-            @RequestBody CancelEventRegistrationRequest cancelEventRegistrationRequest
+            @RequestBody @Valid CancelEventRegistrationRequest cancelEventRegistrationRequest
     ) {
         return ResponseEntity.ok().body(eventRegistrationService.cancelEventRegistration(slug, id, cancelEventRegistrationRequest));
     }

@@ -57,9 +57,11 @@ export const Hero: React.FC = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="flex flex-col sm:flex-row gap-4"
           >
-            <Button size="lg" className="glow text-lg px-8 h-14 w-full sm:w-auto">
-              Explore Events
-              <Rocket className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            <Button size="lg" className="glow text-lg px-8 h-14 w-full sm:w-auto" asChild>
+              <Link to="/events">
+                Explore Events
+                <Rocket className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </Button>
             <Button size="lg" variant="outline" className="text-lg px-8 h-14 w-full sm:w-auto" asChild>
                 <Link to="/auth/signup?role=organizer">For Organizers</Link>
