@@ -3,7 +3,7 @@ package com.omkar.uni.verse.controller;
 import com.omkar.uni.verse.domain.dto.MessageResponse;
 import com.omkar.uni.verse.domain.dto.PageResponse;
 import com.omkar.uni.verse.domain.dto.events.EventRegistrationSummary;
-import com.omkar.uni.verse.domain.dto.user.GetUserProfileResponse;
+import com.omkar.uni.verse.domain.dto.user.UserProfileResponse;
 import com.omkar.uni.verse.domain.dto.user.UpdateUserProfileRequest;
 import com.omkar.uni.verse.domain.entities.events.EventRegistrationStatus;
 import com.omkar.uni.verse.services.EventRegistrationService;
@@ -23,8 +23,8 @@ public class UserController {
     private final EventRegistrationService eventRegistrationService;
 
     @GetMapping("/profile/{email_id}")
-    public ResponseEntity<GetUserProfileResponse> getUserProfile(@PathVariable String email_id) {
-        GetUserProfileResponse userProfile = userService.getUserProfile(email_id);
+    public ResponseEntity<UserProfileResponse> getUserProfile(@PathVariable String email_id) {
+        UserProfileResponse userProfile = userService.getUserProfile(email_id);
         return ResponseEntity.ok().body(userProfile);
     }
 

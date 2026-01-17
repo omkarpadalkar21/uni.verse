@@ -11,6 +11,7 @@ import com.omkar.uni.verse.domain.entities.user.User;
 import com.omkar.uni.verse.mappers.ClubMapper;
 import com.omkar.uni.verse.repository.ClubRepository;
 import com.omkar.uni.verse.services.ClubService;
+import com.omkar.uni.verse.utils.PaginationValidator;
 import jakarta.persistence.EntityNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -84,7 +85,8 @@ public class ClubServiceImpl implements ClubService {
     public Page<ClubDTO> getAllClubs(int offset, int pageSize) {
         log.debug("Fetching all active clubs - page: {}, size: {}", offset, pageSize);
 
-        Page<ClubDTO> clubs = clubRepository.findAllByClubStatus(ClubStatus.ACTIVE, PageRequest.of(offset, pageSize))
+        PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(offset, pageSize);
+        Page<ClubDTO> clubs = clubRepository.findAllByClubStatus(ClubStatus.ACTIVE, pageRequest)
                 .map(clubMapper::toClubDTO);
 
         log.debug("Retrieved {} active clubs out of {} total", clubs.getNumberOfElements(), clubs.getTotalElements());

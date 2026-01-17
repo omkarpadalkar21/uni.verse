@@ -109,7 +109,7 @@ public class User implements UserDetails {
 
     // Foreign key for self-reference
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "suspended_by_user_id", referencedColumnName = "id", insertable = false, updatable = false)
+    @JoinColumn(name = "suspended_by_user_id", referencedColumnName = "id")
     private User suspendedBy;
 
     @Enumerated(EnumType.STRING)

@@ -12,6 +12,7 @@ import com.omkar.uni.verse.repository.ClubRepository;
 import com.omkar.uni.verse.repository.EventRegistrationRepository;
 import com.omkar.uni.verse.repository.EventRepository;
 import com.omkar.uni.verse.services.EventService;
+import com.omkar.uni.verse.utils.PaginationValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,8 +43,11 @@ public class EventServiceImpl implements EventService {
         if (clubId != null) {
             club = clubRepository.findById(clubId).orElse(null);
         }
+        
+        PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(page, size);
+        
         return eventRepository.findAllByClubAndCategoryAndEndTimeIsAfterAndCancelledAtIsNullAndStatus(
-                club, category, dateTime, EventStatus.PUBLISHED, PageRequest.of(page, size)
+                club, category, dateTime, EventStatus.PUBLISHED, pageRequest
         ).map(eventMapper::toEventResponse);
     }
 

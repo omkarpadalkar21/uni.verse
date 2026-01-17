@@ -39,4 +39,5 @@ public interface ClubRepository extends JpaRepository<Club, UUID> {
     @Query("SELECT DISTINCT c FROM Club c LEFT JOIN FETCH c.leaders LEFT JOIN FETCH c.members WHERE c.slug = :slug")
     Optional<Club> findBySlugWithLeadersAndMembers(@Param("slug") String slug);
 
+   long countClubByClubStatus(ClubStatus clubStatus);
 }
