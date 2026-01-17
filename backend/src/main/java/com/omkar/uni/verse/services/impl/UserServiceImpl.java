@@ -1,6 +1,6 @@
 package com.omkar.uni.verse.services.impl;
 
-import com.omkar.uni.verse.domain.dto.user.GetUserProfileResponse;
+import com.omkar.uni.verse.domain.dto.user.UserProfileResponse;
 import com.omkar.uni.verse.domain.dto.user.UpdateUserProfileRequest;
 import com.omkar.uni.verse.domain.entities.user.User;
 import com.omkar.uni.verse.mappers.UserMapper;
@@ -39,7 +39,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public GetUserProfileResponse getUserProfile(String email) {
+    public UserProfileResponse getUserProfile(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
@@ -50,7 +50,7 @@ public class UserServiceImpl implements UserService {
                 .map(clubFollower -> clubFollower.getClub().getName())
                 .collect(java.util.stream.Collectors.toSet());
 
-        GetUserProfileResponse userProfileResponse = userMapper.toUserProfileResponse(user);
+        UserProfileResponse userProfileResponse = userMapper.toUserProfileResponse(user);
         userProfileResponse.setJoinedClub(joinedClubs);
 
         return userProfileResponse;

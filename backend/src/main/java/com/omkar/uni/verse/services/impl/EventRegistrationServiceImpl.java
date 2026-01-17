@@ -15,6 +15,7 @@ import com.omkar.uni.verse.repository.EventRegistrationRepository;
 import com.omkar.uni.verse.repository.EventRepository;
 import com.omkar.uni.verse.repository.UserRepository;
 import com.omkar.uni.verse.services.EventRegistrationService;
+import com.omkar.uni.verse.utils.PaginationValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -100,7 +101,9 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
         log.info("Fetching registrations for event {} with status {} for club '{}' (slug: {})",
                 eventId, registrationStatus, club.getName(), slug);
 
-        return eventRegistrationRepository.findByEventAndStatus(event, registrationStatus, PageRequest.of(offset, pageSize))
+        PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(offset, pageSize);
+        
+        return eventRegistrationRepository.findByEventAndStatus(event, registrationStatus, pageRequest)
                 .map(eventRegistration -> EventRegistrationSummary.builder()
                         .user(mapUserToBasicDTO(eventRegistration.getUser()))
                         .userEmail(eventRegistration.getUser().getEmail())
@@ -119,9 +122,11 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
         log.info("Fetching event registrations for user {} with status filter: {}",
                 currentUser.getEmail(), status != null ? status : "ALL");
 
+        PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(offset, pageSize);
+        
         Page<EventRegistration> registrations = status != null
-                ? eventRegistrationRepository.findEventRegistrationByUserAndStatus(currentUser, status, PageRequest.of(offset, pageSize))
-                : eventRegistrationRepository.findEventRegistrationByUser(currentUser, PageRequest.of(offset, pageSize));
+                ? eventRegistrationRepository.findEventRegistrationByUserAndStatus(currentUser, status, pageRequest)
+                : eventRegistrationRepository.findEventRegistrationByUser(currentUser, pageRequest);
 
         return registrations.map(eventRegistration -> EventRegistrationSummary.builder()
                 .eventSummary(eventMapper.toEventSummary(eventRegistration.getEvent()))
@@ -161,6 +166,10 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
 
         EventRegistration registration = eventRegistrationRepository.findByUserAndEvent(userRegistrationToBeApproved, event)
                 .orElseThrow(() -> new EntityNotFoundException("Event registration with the requested user not found"));
+
+        if (registration.getStatus() == EventRegistrationStatus.APPROVED) {
+            throw new IllegalStateException("Event registration request is already approved");
+        }
 
         registration.setStatus(EventRegistrationStatus.APPROVED);
         registration.setRegisteredAt(LocalDateTime.now());
@@ -203,6 +212,10 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
         EventRegistration registration = eventRegistrationRepository.findByUserAndEvent(userRegistrationToBeRejected, event)
                 .orElseThrow(() -> new EntityNotFoundException("Event registration with the requested user not found"));
 
+        if (registration.getStatus() == EventRegistrationStatus.REJECTED) {
+            throw new IllegalStateException("Event registration request is already rejected");
+        }
+
         registration.setStatus(EventRegistrationStatus.REJECTED);
         registration.setRejectionReason(rejectEventRegistrationRequest.rejectionReason());
         registration.setReviewedBy(currentUser);
@@ -231,6 +244,10 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
 
         EventRegistration registration = eventRegistrationRepository.findByUserAndEvent(currentUser, event)
                 .orElseThrow(() -> new EntityNotFoundException("Event registration with the requested user not found"));
+
+        if (registration.getStatus() == EventRegistrationStatus.CANCELLED) {
+            throw new IllegalStateException("Event registration is already cancelled");
+        }
 
         registration.setStatus(EventRegistrationStatus.CANCELLED);
         registration.setCancellationReason(cancelEventRegistrationRequest.cancellationReason());

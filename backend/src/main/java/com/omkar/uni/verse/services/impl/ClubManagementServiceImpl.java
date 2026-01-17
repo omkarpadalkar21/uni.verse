@@ -14,6 +14,7 @@ import com.omkar.uni.verse.repository.ClubMemberRepository;
 import com.omkar.uni.verse.repository.ClubRepository;
 import com.omkar.uni.verse.repository.UserRepository;
 import com.omkar.uni.verse.services.ClubManagementService;
+import com.omkar.uni.verse.utils.PaginationValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -94,8 +95,10 @@ public class ClubManagementServiceImpl implements ClubManagementService {
             throw new AccessDeniedException("You are not authorized to get details of this club!");
         }
 
-        return clubJoinRequestRepository.findClubJoinRequestByClub(club,
-                PageRequest.of(offset, pageSize, Sort.by(Sort.Direction.DESC, "createdAt")));
+        PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(
+                offset, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+        
+        return clubJoinRequestRepository.findClubJoinRequestByClub(club, pageRequest);
     }
 
     @Override
@@ -233,7 +236,8 @@ public class ClubManagementServiceImpl implements ClubManagementService {
                 ? Collections.emptyList()
                 : allMembers.subList(start, end);
 
-        return new PageImpl<>(paginatedMembers, PageRequest.of(offset, pageSize), allMembers.size());
+        PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(offset, pageSize);
+        return new PageImpl<>(paginatedMembers, pageRequest, allMembers.size());
     }
 
     @Override
