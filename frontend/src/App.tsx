@@ -20,6 +20,12 @@ import AdminClubsPage from './pages/admin/AdminClubsPage';
 import CreateEventPage from './pages/events/CreateEventPage';
 import EventDetailPage from './pages/events/EventDetailPage';
 
+// User pages
+import UserRegistrationsPage from './pages/UserRegistrationsPage';
+
+// Event registration management
+import { EventRegistrationsList } from './components/events/EventRegistrationsList';
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="universe-theme">
@@ -45,6 +51,10 @@ function App() {
 
           {/* Event management routes (protected - for club leaders) */}
           <Route path="/clubs/:slug/events/create" element={<CreateEventPage />} />
+          <Route path="/clubs/:slug/events/:eventId/registrations" element={<EventRegistrationsList />} />
+
+          {/* User routes (protected) */}
+          <Route path="/my-registrations" element={<UserRegistrationsPage />} />
 
           {/* Admin routes (protected - for faculty/superadmin) */}
           <Route path="/admin/clubs" element={<AdminClubsPage />} />
@@ -55,3 +65,4 @@ function App() {
 }
 
 export default App;
+

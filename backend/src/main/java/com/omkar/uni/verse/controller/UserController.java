@@ -36,7 +36,7 @@ public class UserController {
 
     @GetMapping("/registrations")
     public ResponseEntity<PageResponse<EventRegistrationSummary>> getUserEventRegistrations(
-            @RequestBody EventRegistrationStatus status,
+            @RequestParam(required = false) EventRegistrationStatus status,
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int pageSize
     ) {

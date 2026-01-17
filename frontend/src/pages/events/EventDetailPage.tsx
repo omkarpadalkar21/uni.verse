@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { eventApi, isAuthenticated } from "@/lib/api";
+import { EventRegistrationButton } from "@/components/events/EventRegistrationButton";
 import type { EventResponse } from "@/types/event";
 import { cn } from "@/lib/utils";
 
@@ -274,16 +275,15 @@ export default function EventDetailPage() {
                   <Button asChild className="w-full">
                     <Link to="/auth/signin">Sign in to Register</Link>
                   </Button>
-                ) : event.isRegistered ? (
-                  <Button disabled className="w-full" variant="secondary">
-                    Already Registered
-                  </Button>
-                ) : availableSeats === 0 ? (
-                  <Button disabled className="w-full" variant="secondary">
-                    Event Full
-                  </Button>
                 ) : (
-                  <Button className="w-full glow">Register Now</Button>
+                  <EventRegistrationButton
+                    slug={event.club.slug}
+                    eventId={event.id}
+                    registrationMode={event.registrationMode}
+                    isRegistered={event.isRegistered}
+                    isFull={availableSeats === 0}
+                    onSuccess={() => fetchEvent()}
+                  />
                 )}
               </CardContent>
             </Card>
