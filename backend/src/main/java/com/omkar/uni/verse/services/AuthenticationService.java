@@ -1,6 +1,7 @@
 package com.omkar.uni.verse.services;
 
 import com.omkar.uni.verse.domain.dto.*;
+import com.omkar.uni.verse.domain.dto.user.VerifyOrganizerRequest;
 import com.omkar.uni.verse.domain.entities.clubs.OrganizerVerification;
 import com.omkar.uni.verse.domain.entities.clubs.OrganizerVerificationToken;
 import com.omkar.uni.verse.domain.entities.clubs.VerificationStatus;
@@ -10,6 +11,7 @@ import com.omkar.uni.verse.repository.*;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import jakarta.mail.MessagingException;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -47,6 +50,7 @@ public class AuthenticationService {
     private final RateLimitingService rateLimitingService;
     private final OrganizerVerificationTokenRepository organizerVerificationTokenRepository;
     private final UserMapper userMapper;
+    private final S3Service s3Service;
     @Value("${spring.mail.username}")
     private String platformMailId;
 
@@ -147,6 +151,61 @@ public class AuthenticationService {
                 .refreshToken(newRefreshToken)
                 .accessToken(newAccessToken)
                 .build();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public MessageResponse uploadOrganizerVerificationProof(VerifyOrganizerRequest request) throws IOException {
+        User userToBeVerified = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        String hashedOtp = hashToken(request.getOtp());
+
+        OrganizerVerificationToken token = organizerVerificationTokenRepository.findByUserAndOtp(userToBeVerified, hashedOtp)
+                .orElseThrow(() -> {
+                    log.warn("Invalid OTP attempt for organizer: {} ", userToBeVerified.getEmail());
+                    return new IllegalArgumentException("Invalid OTP");
+                });
+
+        if (token.getVerifiedAt() != null) {
+            log.warn("OTP reuse attempt for user: {} for organizer verification", userToBeVerified.getEmail());
+            throw new IllegalArgumentException("OTP already used");
+        }
+
+        // Check if token expired
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            log.warn("Expired OTP attempt for organizer: {} ", userToBeVerified.getEmail());
+            throw new IllegalArgumentException("OTP has expired. Request a new one.");
+        }
+
+
+        token.setVerifiedAt(LocalDateTime.now());
+        organizerVerificationTokenRepository.save(token);
+
+        userToBeVerified.setEmailVerified(true);
+        userToBeVerified.setEmailVerifiedAt(LocalDateTime.now());
+        userRepository.save(userToBeVerified);
+
+        log.info("Email verified successfully for organizer: {}", userToBeVerified.getEmail());
+
+        OrganizerVerification verification = organizerVerificationRepository.findByUser(userToBeVerified)
+                .orElseThrow(() -> new EntityNotFoundException("Organizer verification not found for user"));
+
+        // Upload document to S3 and get the URL
+        String documentUrl = s3Service.uploadVerificationDocument(
+                request.getVerificationDocument(),
+                userToBeVerified.getId().toString()
+        );
+
+        // Update verification with document details
+        verification.setDocumentUrl(documentUrl);
+        verification.setDocumentType(request.getVerificationDocument().getContentType());
+        organizerVerificationRepository.save(verification);
+
+        log.info("Verification document uploaded successfully for organizer: {}", userToBeVerified.getEmail());
+        
+        return new MessageResponse(
+                "Email verified successfully. You will be notified upon verification of the uploaded documents"
+        );
     }
 
     public AuthenticationResponse login(LoginRequest request, String ipAddress, String userAgent) {
@@ -282,7 +341,7 @@ public class AuthenticationService {
         log.info("Organizer verification email sent successfully to {}", user.getEmail());
     }
 
-    @Transactional(readOnly=true)
+    @Transactional(readOnly = true)
     public AuthenticationResponse refreshAccessToken(String refreshToken) {
         if (!jwtService.isRefreshTokenValid(refreshToken)) {
             throw new IllegalArgumentException("Invalid or expired refresh token");
