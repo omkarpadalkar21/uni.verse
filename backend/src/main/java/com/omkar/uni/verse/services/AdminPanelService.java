@@ -1,5 +1,7 @@
 package com.omkar.uni.verse.services;
 
+import com.omkar.uni.verse.domain.dto.MessageResponse;
+import com.omkar.uni.verse.domain.dto.admin.OrganizerVerificationResponse;
 import com.omkar.uni.verse.domain.dto.admin.PlatformStatsDTO;
 import com.omkar.uni.verse.domain.dto.admin.UserSuspensionReason;
 import com.omkar.uni.verse.domain.dto.clubs.ClubDTO;
@@ -23,4 +25,8 @@ public interface AdminPanelService {
     UserProfileResponse suspendUser(UUID userId, UserSuspensionReason suspensionReason);
 
     PlatformStatsDTO getPlatformStats(ClubStatus clubStatus, EventStatus eventStatus, AccountStatus status);
+
+    MessageResponse approveOrganizers();
+
+    Page<OrganizerVerificationResponse> getOrganizerVerificationRequests();
 }

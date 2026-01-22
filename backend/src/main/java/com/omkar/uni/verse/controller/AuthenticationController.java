@@ -1,6 +1,7 @@
 package com.omkar.uni.verse.controller;
 
 import com.omkar.uni.verse.domain.dto.*;
+import com.omkar.uni.verse.domain.dto.user.VerifyOrganizerRequest;
 import com.omkar.uni.verse.domain.entities.user.EmailTemplateName;
 import com.omkar.uni.verse.services.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Multipart;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -150,5 +155,12 @@ public class AuthenticationController {
     ) {
         authenticationService.logout(logoutRequest.getAccessToken(), logoutRequest.getRefreshToken());
         return ResponseEntity.ok(new MessageResponse("Logged out successfully"));
+    }
+
+    @PostMapping("/upload-organizer-proof")
+    public ResponseEntity<MessageResponse> uploadOrganizerProof(
+            @ModelAttribute @Valid VerifyOrganizerRequest verifyOrganizerRequest
+    ) throws IOException {
+        return ResponseEntity.ok().body(authenticationService.uploadOrganizerVerificationProof(verifyOrganizerRequest));
     }
 }

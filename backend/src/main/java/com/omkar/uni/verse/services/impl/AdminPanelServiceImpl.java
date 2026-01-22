@@ -1,5 +1,7 @@
 package com.omkar.uni.verse.services.impl;
 
+import com.omkar.uni.verse.domain.dto.MessageResponse;
+import com.omkar.uni.verse.domain.dto.admin.OrganizerVerificationResponse;
 import com.omkar.uni.verse.domain.dto.admin.PlatformStatsDTO;
 import com.omkar.uni.verse.domain.dto.admin.UserSuspensionReason;
 import com.omkar.uni.verse.domain.dto.clubs.ClubDTO;
@@ -248,6 +250,16 @@ public class AdminPanelServiceImpl implements AdminPanelService {
                 .totalUsers(totalUsers)
                 .pendingApprovals(pendingApprovals)
                 .build();
+    }
+
+    @Override
+    public MessageResponse approveOrganizers() {
+        return null;
+    }
+
+    @Override
+    public Page<OrganizerVerificationResponse> getOrganizerVerificationRequests() {
+        return null;
     }
 
     private User getCurrentUser() {
