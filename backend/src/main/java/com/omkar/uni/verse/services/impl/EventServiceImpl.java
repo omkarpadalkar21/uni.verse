@@ -16,6 +16,7 @@ import com.omkar.uni.verse.utils.PaginationValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,15 +38,20 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<EventResponse> getAllEvents(UUID clubId, EventCategory category, LocalDateTime dateTime, int page,
-                                            int size) {
+    @Cacheable(
+            cacheNames = "events",
+            key = "'club=' + #clubId + ',cat=' + #category + ',page=' + #page + ',time=' + #dateTime.withMinute(0).withSecond(0).withNano(0)"
+    )
+    public Page<EventResponse> getAllEvents(
+            UUID clubId, EventCategory category, LocalDateTime dateTime, int page, int size
+    ) {
         Club club = null;
         if (clubId != null) {
             club = clubRepository.findById(clubId).orElse(null);
         }
-        
+
         PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(page, size);
-        
+
         return eventRepository.findAllByClubAndCategoryAndEndTimeIsAfterAndCancelledAtIsNullAndStatus(
                 club, category, dateTime, EventStatus.PUBLISHED, pageRequest
         ).map(eventMapper::toEventResponse);
@@ -53,6 +59,7 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "event", key = "#id")
     public EventResponse getEventById(UUID id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found"));

@@ -16,6 +16,9 @@ import jakarta.persistence.EntityNotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
@@ -37,6 +40,7 @@ public class ClubServiceImpl implements ClubService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "adminClubs", allEntries = true)
     public ClubResponse registerNewClub(ClubRegistrationRequest registrationRequest) {
         log.debug("Attempting to register new club with slug: {}", registrationRequest.getSlug());
 
@@ -82,6 +86,10 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
+    @Cacheable(
+            cacheNames = "clubs",
+            key = "'page=' + #offset + ',size=' + #pageSize"
+    )
     public Page<ClubDTO> getAllClubs(int offset, int pageSize) {
         log.debug("Fetching all active clubs - page: {}, size: {}", offset, pageSize);
 
@@ -94,6 +102,7 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
+    @Cacheable(cacheNames = "club", key = "#slug")
     public ClubDTO getClubBySlug(String slug) {
         log.debug("Fetching active club by slug: {}", slug);
 
@@ -110,6 +119,8 @@ public class ClubServiceImpl implements ClubService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CachePut(cacheNames = "club", key = "#slug")
+    @CacheEvict(cacheNames = "clubs", allEntries = true)
     public ClubDTO updateClubBySlug(String slug, ClubUpdateRequest clubUpdateRequest) {
         log.debug("Attempting to update club with slug: {}", slug);
 
@@ -149,6 +160,7 @@ public class ClubServiceImpl implements ClubService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_FACULTY')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"club", "clubs", "adminClubs"}, allEntries = true)
     public ClubResponse approveClubBySlug(String slug) {
         log.debug("Attempting to approve club with slug: {}", slug);
 
@@ -192,6 +204,7 @@ public class ClubServiceImpl implements ClubService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_FACULTY')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"club", "clubs", "adminClubs"}, allEntries = true)
     public ClubResponse rejectClubBySlug(String slug) {
         log.debug("Attempting to reject club with slug: {}", slug);
 
@@ -235,6 +248,7 @@ public class ClubServiceImpl implements ClubService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_FACULTY')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"club", "clubs", "adminClubs"}, allEntries = true)
     public ClubResponse suspendClubBySlug(String slug) {
         log.debug("Attempting to suspend club with slug: {}", slug);
 

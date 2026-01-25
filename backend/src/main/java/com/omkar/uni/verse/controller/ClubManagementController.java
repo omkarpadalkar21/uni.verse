@@ -6,6 +6,7 @@ import com.omkar.uni.verse.domain.dto.clubs.ClubRejectionRequest;
 import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubRequest;
 import com.omkar.uni.verse.domain.dto.clubs.management.ClubManagementResponse;
 import com.omkar.uni.verse.domain.entities.clubs.ClubJoinRequest;
+import com.omkar.uni.verse.domain.entities.clubs.JoinRequestStatus;
 import com.omkar.uni.verse.services.ClubManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,10 +34,11 @@ public class ClubManagementController {
     @GetMapping("/join-requests")
     public ResponseEntity<Page<ClubJoinRequest>> getClubJoinRequests(
             @PathVariable String slug,
+            @RequestParam(required = false) JoinRequestStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        return ResponseEntity.ok(clubManagementService.getAllClubJoinRequests(slug, page, size));
+        return ResponseEntity.ok(clubManagementService.getAllClubJoinRequests(slug, status, page, size));
     }
 
     @PutMapping("/join-requests/{userId}/approve")

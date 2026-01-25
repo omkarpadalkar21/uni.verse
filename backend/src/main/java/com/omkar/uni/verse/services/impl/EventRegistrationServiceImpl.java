@@ -19,6 +19,8 @@ import com.omkar.uni.verse.utils.PaginationValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
@@ -42,6 +44,7 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"eventRegistrations", "userEventRegistrations"}, allEntries = true)
     public EventRegistrationResponse createEventRegistration(String slug, UUID eventId) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -74,6 +77,10 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_CLUB_MEMBER','ROLE_CLUB_LEADER')")
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = "eventRegistrations",
+            key = "'club=' + #slug + ':eventId=' + #eventId + ':status=' + (#registrationStatus != null ? #registrationStatus : 'PENDING') + ':page=' + #offset + ':size=' + #pageSize"
+    )
     public Page<EventRegistrationSummary> getClubEventRegistrations(String slug, UUID eventId, EventRegistrationStatus registrationStatus, int offset, int pageSize) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -102,7 +109,7 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
                 eventId, registrationStatus, club.getName(), slug);
 
         PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(offset, pageSize);
-        
+
         return eventRegistrationRepository.findByEventAndStatus(event, registrationStatus, pageRequest)
                 .map(eventRegistration -> EventRegistrationSummary.builder()
                         .user(mapUserToBasicDTO(eventRegistration.getUser()))
@@ -114,6 +121,10 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = "userEventRegistrations",
+            key = "T(org.springframework.security.core.context.SecurityContextHolder).getContext().getAuthentication().getPrincipal().getEmail() + ':status=' + (#status != null ? #status : 'ALL') + ':page=' + #offset + ':size=' + #pageSize"
+    )
     public Page<EventRegistrationSummary> getUserEventRegistrations(EventRegistrationStatus status, int offset, int pageSize) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -123,7 +134,7 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
                 currentUser.getEmail(), status != null ? status : "ALL");
 
         PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(offset, pageSize);
-        
+
         Page<EventRegistration> registrations = status != null
                 ? eventRegistrationRepository.findEventRegistrationByUserAndStatus(currentUser, status, pageRequest)
                 : eventRegistrationRepository.findEventRegistrationByUser(currentUser, pageRequest);
@@ -139,6 +150,7 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_CLUB_MEMBER','ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"eventRegistrations", "userEventRegistrations"}, allEntries = true)
     public EventRegistrationResponse approveEventRegistration(String slug, UUID eventId, UUID userId) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -183,6 +195,7 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_CLUB_MEMBER','ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"eventRegistrations", "userEventRegistrations"}, allEntries = true)
     public EventRegistrationResponse rejectEventRegistration(String slug, UUID eventId, UUID userId, RejectEventRegistrationRequest rejectEventRegistrationRequest) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -230,6 +243,7 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "userEventRegistrations", allEntries = true)
     public MessageResponse cancelEventRegistration(String slug, UUID eventId, CancelEventRegistrationRequest cancelEventRegistrationRequest) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()

@@ -1,5 +1,19 @@
 package com.omkar.uni.verse.config;
 
+import java.time.Duration;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.CacheManager;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+
 import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
 import io.github.bucket4j.distributed.proxy.ClientSideConfig;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
@@ -10,13 +24,10 @@ import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.codec.ByteArrayCodec;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.codec.StringCodec;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-import java.time.Duration;
+import org.springframework.cache.annotation.EnableCaching;
 
 @Configuration
+@EnableCaching
 public class RedisConfig {
     @Value("${spring.data.redis.port}")
     private int redisPort;
@@ -56,6 +67,46 @@ public class RedisConfig {
 
         return LettuceBasedProxyManager.builderFor(connection)
                 .withClientSideConfig(clientSideConfig)
+                .build();
+    }
+
+    @Bean
+    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        // Json serializer for values
+        GenericJackson2JsonRedisSerializer jsonRedisSerializer = new GenericJackson2JsonRedisSerializer();
+
+        // String serializer for keys
+        StringRedisSerializer stringSerializer = new StringRedisSerializer();
+
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(stringSerializer))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonRedisSerializer))
+                .entryTtl(Duration.ofMinutes(5))
+                .disableCachingNullValues()
+                .prefixCacheNameWith("universe/cache/");
+
+        Map<String, RedisCacheConfiguration> cacheConfigurations = Map.of(
+                "users", defaultConfig
+                        .entryTtl(Duration.ofMinutes(2))
+                        .prefixCacheNameWith("universe/users/"),
+                "club", defaultConfig
+                        .entryTtl(Duration.ofMinutes(20))
+                        .prefixCacheNameWith("universe/club/"),
+                "clubs", defaultConfig
+                        .entryTtl(Duration.ofMinutes(20))
+                        .prefixCacheNameWith("universe/clubs/"),
+                "events", defaultConfig
+                        .entryTtl(Duration.ofMinutes(10))
+                        .prefixCacheNameWith("universe/events/"),
+                "event", defaultConfig
+                        .entryTtl(Duration.ofMinutes(30))
+                        .prefixCacheNameWith("universe/event/")
+        );
+
+        return RedisCacheManager.builder(connectionFactory)
+                .cacheDefaults(defaultConfig)
+                .withInitialCacheConfigurations(cacheConfigurations)
+                .transactionAware()
                 .build();
     }
 }

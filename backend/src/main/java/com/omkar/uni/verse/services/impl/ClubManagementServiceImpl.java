@@ -3,21 +3,19 @@ package com.omkar.uni.verse.services.impl;
 import com.omkar.uni.verse.domain.dto.MessageResponse;
 import com.omkar.uni.verse.domain.dto.clubs.ClubMembersDTO;
 import com.omkar.uni.verse.domain.dto.clubs.ClubRejectionRequest;
-import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubRequest;
 import com.omkar.uni.verse.domain.dto.clubs.management.ClubManagementResponse;
+import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubRequest;
 import com.omkar.uni.verse.domain.entities.clubs.*;
 import com.omkar.uni.verse.domain.entities.user.RoleName;
 import com.omkar.uni.verse.domain.entities.user.User;
-import com.omkar.uni.verse.repository.ClubJoinRequestRepository;
-import com.omkar.uni.verse.repository.ClubLeaderRepository;
-import com.omkar.uni.verse.repository.ClubMemberRepository;
-import com.omkar.uni.verse.repository.ClubRepository;
-import com.omkar.uni.verse.repository.UserRepository;
+import com.omkar.uni.verse.repository.*;
 import com.omkar.uni.verse.services.ClubManagementService;
 import com.omkar.uni.verse.utils.PaginationValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -47,6 +45,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "clubJoinRequests", allEntries = true)
     public MessageResponse createClubJoinRequest(String slug, JoinClubRequest joinRequest) {
 
         Club club = clubRepository.findBySlugAndClubStatus(slug, ClubStatus.ACTIVE)
@@ -81,7 +80,11 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class, readOnly = true)
-    public Page<ClubJoinRequest> getAllClubJoinRequests(String slug, int offset, int pageSize) {
+    @Cacheable(
+            cacheNames = "clubJoinRequests",
+            key = "'slug=' + #slug + ',page=' + #offset + ',size=' + #pageSize + ',status=' + #status"
+    )
+    public Page<ClubJoinRequest> getAllClubJoinRequests(String slug, JoinRequestStatus status, int offset, int pageSize) {
         Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
@@ -97,13 +100,16 @@ public class ClubManagementServiceImpl implements ClubManagementService {
 
         PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(
                 offset, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
-        
-        return clubJoinRequestRepository.findClubJoinRequestByClub(club, pageRequest);
+
+        return clubJoinRequestRepository.findClubJoinRequestByClubAndStatus(
+                club, status == null ? JoinRequestStatus.PENDING : status, pageRequest
+        );
     }
 
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"clubJoinRequests", "clubMembers"}, allEntries = true)
     public ClubManagementResponse approveClubJoinRequest(String slug, UUID id) {
         Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
@@ -152,6 +158,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "clubJoinRequests", allEntries = true)
     public ClubManagementResponse rejectClubJoinRequest(String slug, UUID userId, ClubRejectionRequest rejectionRequest) {
         Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
@@ -188,6 +195,10 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_CLUB_LEADER','ROLE_CLUB_MEMBER')")
     @Transactional(rollbackFor = Exception.class, readOnly = true)
+    @Cacheable(
+            cacheNames = "clubMembers",
+            key = "'slug=' + #slug + ',page=' + #offset + ',size=' + #pageSize"
+    )
     public Page<ClubMembersDTO> getAllClubMembers(String slug, int offset, int pageSize) {
         Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
@@ -243,6 +254,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "clubMembers", allEntries = true)
     public ClubManagementResponse promoteClubMember(String slug, UUID id) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -287,6 +299,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "clubMembers", allEntries = true)
     public ClubManagementResponse removeClubMember(String slug, UUID id) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -318,6 +331,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_MEMBER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "clubMembers", allEntries = true)
     public ClubManagementResponse leaveClub(String slug) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
