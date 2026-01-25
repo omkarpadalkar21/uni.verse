@@ -12,6 +12,7 @@ import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import jakarta.mail.MessagingException;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -79,7 +80,7 @@ public class AuthenticationService {
         User newUser = userMapper.toEntity(registrationRequest);
         newUser.setPassword(passwordEncoder.encode(registrationRequest.getPassword()));
         newUser.setUniversityEmailDomain(EXPECTED_DOMAIN);
-        newUser.setAccountStatus(isOrganizerRequest ? AccountStatus.PENDING_VERIFICATION : AccountStatus.ACTIVE);
+        newUser.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
 
         userRepository.save(newUser);
 
@@ -104,6 +105,7 @@ public class AuthenticationService {
 
 
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "adminUsers", allEntries = true)
     public AuthenticationResponse verifyEmail(VerifyEmailRequest request, String ipAddress, String userAgent) {
         log.info("Email verification attempt for: {}", request.getEmail());
 
@@ -138,6 +140,7 @@ public class AuthenticationService {
         emailVerificationTokenRepository.save(token);
 
         // Verify user email
+        user.setAccountStatus(AccountStatus.ACTIVE);
         user.setEmailVerified(true);
         user.setEmailVerifiedAt(LocalDateTime.now());
         userRepository.save(user);

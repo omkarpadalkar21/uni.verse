@@ -2,6 +2,8 @@ package com.omkar.uni.verse.repository;
 
 import com.omkar.uni.verse.domain.entities.clubs.Club;
 import com.omkar.uni.verse.domain.entities.clubs.ClubJoinRequest;
+import com.omkar.uni.verse.domain.entities.clubs.ClubStatus;
+import com.omkar.uni.verse.domain.entities.clubs.JoinRequestStatus;
 import com.omkar.uni.verse.domain.entities.user.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,7 +15,7 @@ import java.util.UUID;
 public interface ClubJoinRequestRepository extends JpaRepository<ClubJoinRequest, UUID> {
     boolean existsClubJoinRequestByUserAndClub(User user, Club club);
 
-    Page<ClubJoinRequest> findClubJoinRequestByClub(Club club, Pageable pageable);
+    Page<ClubJoinRequest> findClubJoinRequestByClubAndStatus(Club club, JoinRequestStatus status, Pageable pageable);
 
     Optional<ClubJoinRequest> findClubJoinRequestByUserAndClub(User user, Club club);
 }

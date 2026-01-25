@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,6 +44,7 @@ public class EventManagementServiceImpl implements EventManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "events", allEntries = true)
     public EventResponse createEvent(String slug, EventCreateRequest eventCreateRequest) {
         log.debug("Attempting to create new event for club with slug: {}", slug);
 
@@ -85,6 +87,7 @@ public class EventManagementServiceImpl implements EventManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"event", "events"}, key = "#eventId", allEntries = true)
     public EventResponse updateEventById(String slug, UUID eventId, EventUpdateRequest eventUpdateRequest) {
         isClubLeader(slug);
 
@@ -114,6 +117,7 @@ public class EventManagementServiceImpl implements EventManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"event", "events"}, key = "#eventId", allEntries = true)
     public MessageResponse deleteEventById(String slug, UUID eventId) {
         isClubLeader(slug);
 
@@ -139,6 +143,7 @@ public class EventManagementServiceImpl implements EventManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"event", "events"}, key = "#eventId", allEntries = true)
     public EventResponse publishEventsById(String slug, UUID eventId) {
         isClubLeader(slug);
 
@@ -163,6 +168,7 @@ public class EventManagementServiceImpl implements EventManagementService {
 
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
+    @CacheEvict(cacheNames = {"event", "events"}, key = "#eventId", allEntries = true)
     public EventResponse cancelEventsById(String slug, UUID eventId, EventCancelRequest eventCancelRequest) {
         isClubLeader(slug);
 

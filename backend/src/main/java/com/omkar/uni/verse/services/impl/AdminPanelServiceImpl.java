@@ -23,6 +23,8 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -50,6 +52,7 @@ public class AdminPanelServiceImpl implements AdminPanelService {
 
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
+    @Cacheable(cacheNames = "adminClubs", key = "'status=' + #status + ',page=' + #offset + 'size=' + #pageSize")
     public Page<ClubDTO> getClubs(ClubStatus status, int offset, int pageSize) {
         log.debug("Fetching clubs with status: {}, offset: {}, pageSize: {}", status, offset, pageSize);
 
@@ -74,6 +77,10 @@ public class AdminPanelServiceImpl implements AdminPanelService {
 
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
+    @Cacheable(
+            cacheNames = "adminUsers",
+            key = "'status=' + #accountStatus + ',page=' + #offset + ',size=' + #pageSize + ',roleName=' + #roleName"
+    )
     public Page<UserBasicDTO> getUsers(AccountStatus accountStatus, RoleName roleName, int offset, int pageSize) {
         log.debug("Fetching users with accountStatus: {}, role: {}, offset: {}, pageSize: {}",
                 accountStatus, roleName, offset, pageSize);
@@ -118,6 +125,7 @@ public class AdminPanelServiceImpl implements AdminPanelService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_SUPERADMIN')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "adminUsers", allEntries = true)
     public UserProfileResponse promoteToFaculty(UUID userId) {
 
         if (userId == null) {
@@ -164,6 +172,7 @@ public class AdminPanelServiceImpl implements AdminPanelService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "adminUsers", allEntries = true)
     public UserProfileResponse suspendUser(UUID userId, UserSuspensionReason suspensionReason) {
         if (userId == null) {
             log.error("Suspension failed: userId is null");
@@ -219,6 +228,10 @@ public class AdminPanelServiceImpl implements AdminPanelService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
     @Transactional(readOnly = true)
+//    @Cacheable(
+//            cacheNames = "platformStats",
+//            key = "'clubStatus=' + #clubStatus + ',eventStatus=' + #eventStatus + ',accountStatus=' + #accountStatus"
+//    )
     public PlatformStatsDTO getPlatformStats(ClubStatus clubStatus, EventStatus eventStatus, AccountStatus accountStatus) {
         log.debug("Fetching platform stats with clubStatus: {}, eventStatus: {}, accountStatus: {}",
                 clubStatus, eventStatus, accountStatus);
