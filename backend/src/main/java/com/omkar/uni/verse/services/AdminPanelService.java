@@ -1,6 +1,7 @@
 package com.omkar.uni.verse.services;
 
 import com.omkar.uni.verse.domain.dto.MessageResponse;
+import com.omkar.uni.verse.domain.dto.admin.OrganizerRejectionReason;
 import com.omkar.uni.verse.domain.dto.admin.OrganizerVerificationResponse;
 import com.omkar.uni.verse.domain.dto.admin.PlatformStatsDTO;
 import com.omkar.uni.verse.domain.dto.admin.UserSuspensionReason;
@@ -27,9 +28,11 @@ public interface AdminPanelService {
 
     PlatformStatsDTO getPlatformStats(ClubStatus clubStatus, EventStatus eventStatus, AccountStatus status);
 
-    MessageResponse approveOrganizers(UUID requestId);
+    MessageResponse approveOrganizer(UUID id);
+
+    MessageResponse rejectOrganizer(UUID id, OrganizerRejectionReason rejectionReason);
 
     Page<OrganizerVerificationResponse> getOrganizerVerificationRequests(VerificationStatus status, int offset, int pageSize);
 
-    public OrganizerVerificationResponse getOrganizerVerificationRequest(UUID id);
+    OrganizerVerificationResponse getOrganizerVerificationRequest(UUID id);
 }

@@ -125,7 +125,7 @@ public class AuthenticationController {
 
         authenticationService.sendPasswordResetEmail(forgotPasswordRequest, httpServletRequest.getRemoteAddr());
 
-        // Generic suspensionReason to prevent email enumeration
+        // Generic message to prevent email enumeration
         return ResponseEntity.ok(
                 new MessageResponse("If the email exists, a password reset link has been sent")
         );
