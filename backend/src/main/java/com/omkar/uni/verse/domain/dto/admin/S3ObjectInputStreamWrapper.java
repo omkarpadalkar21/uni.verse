@@ -1,0 +1,6 @@
+package com.omkar.uni.verse.domain.dto.admin;
+
+import java.io.InputStream;
+
+public record S3ObjectInputStreamWrapper(InputStream inputStream, String eTag) {
+}

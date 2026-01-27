@@ -8,6 +8,7 @@ import com.omkar.uni.verse.domain.dto.clubs.ClubDTO;
 import com.omkar.uni.verse.domain.dto.user.UserBasicDTO;
 import com.omkar.uni.verse.domain.dto.user.UserProfileResponse;
 import com.omkar.uni.verse.domain.entities.clubs.ClubStatus;
+import com.omkar.uni.verse.domain.entities.clubs.VerificationStatus;
 import com.omkar.uni.verse.domain.entities.events.EventStatus;
 import com.omkar.uni.verse.domain.entities.user.AccountStatus;
 import com.omkar.uni.verse.domain.entities.user.RoleName;
@@ -26,7 +27,8 @@ public interface AdminPanelService {
 
     PlatformStatsDTO getPlatformStats(ClubStatus clubStatus, EventStatus eventStatus, AccountStatus status);
 
-    MessageResponse approveOrganizers();
+    MessageResponse approveOrganizers(UUID requestId);
 
-    Page<OrganizerVerificationResponse> getOrganizerVerificationRequests();
+    Page<OrganizerVerificationResponse> getOrganizerVerificationRequests(VerificationStatus status, int offset, int pageSize);
+
 }

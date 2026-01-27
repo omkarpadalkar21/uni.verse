@@ -9,4 +9,6 @@ import org.mapstruct.Mapping;
 public interface OrganizerVerificationMapper {
     @Mapping(target = "userEmail", source ="user.email" )
     OrganizerVerificationResponse toOrganizerVerificationResponse(OrganizerVerification verification);
+
+
 }
