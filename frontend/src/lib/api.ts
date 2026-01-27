@@ -96,6 +96,24 @@ export interface ErrorResponse {
 }
 
 // Authentication API calls
+// Forgot password request
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+// Reset password request
+export interface ResetPasswordRequest {
+  email: string;
+  otp: string;
+  newPassword: string;
+}
+
+// Logout request
+export interface LogoutRequest {
+  accessToken: string;
+  refreshToken: string;
+}
+
 export const authApi = {
   login: async (data: LoginRequest): Promise<AuthenticationResponse> => {
     const response = await apiClient.post<AuthenticationResponse>('/api/v1/auth/login', data);
@@ -111,10 +129,38 @@ export const authApi = {
     const response = await apiClient.post<AuthenticationResponse>('/api/v1/auth/verify-email', data);
     return response.data;
   },
+
+  forgotPassword: async (data: ForgotPasswordRequest): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/api/v1/auth/forgot-password', data);
+    return response.data;
+  },
+
+  resetPassword: async (data: ResetPasswordRequest): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/api/v1/auth/reset-password', data);
+    return response.data;
+  },
+
+  logout: async (data: LogoutRequest): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/api/v1/auth/logout', data);
+    clearTokens();
+    return response.data;
+  },
 };
 
 // ============ Type Imports ============
 import type { PageResponse, Page, MessageResponse } from '@/types/api';
+import type { UserProfileResponse, UpdateUserProfileRequest } from '@/types/user';
+import type {
+  PlatformStatsDTO,
+  UserBasicDTO,
+  OrganizerVerificationResponse,
+  OrganizerRejectionReason,
+  UserSuspensionReason,
+  AccountStatus,
+  VerificationStatus,
+  ClubStatusFilter,
+  EventStatusFilter,
+} from '@/types/admin';
 import type {
   ClubDTO,
   ClubResponse,
@@ -299,6 +345,105 @@ export const eventManagementApi = {
   /** Cancel an event */
   cancelEvent: async (slug: string, eventId: string, data: EventCancelRequest): Promise<EventResponse> => {
     const response = await apiClient.put<EventResponse>(`/api/v1/${slug}/events/${eventId}/cancelled`, data);
+    return response.data;
+  },
+};
+
+// ============ User API ============
+export const userApi = {
+  /** Get user profile by email */
+  getProfile: async (emailId: string): Promise<UserProfileResponse> => {
+    const response = await apiClient.get<UserProfileResponse>(`/api/v1/users/profile/${emailId}`);
+    return response.data;
+  },
+
+  /** Update current user's profile */
+  updateProfile: async (data: UpdateUserProfileRequest): Promise<MessageResponse> => {
+    const response = await apiClient.put<MessageResponse>('/api/v1/users/profile', data);
+    return response.data;
+  },
+};
+
+// ============ Admin API ============
+export const adminApi = {
+  /** Get platform statistics */
+  getStats: async (params?: {
+    clubStatus?: ClubStatusFilter;
+    eventStatus?: EventStatusFilter;
+    accountStatus?: AccountStatus;
+  }): Promise<PlatformStatsDTO> => {
+    const response = await apiClient.get<PlatformStatsDTO>('/api/v1/admin/stats', { params });
+    return response.data;
+  },
+
+  /** Get paginated list of clubs (admin) */
+  getClubs: async (params: {
+    status?: ClubStatusFilter;
+    offset?: number;
+    pageSize?: number;
+  }): Promise<PageResponse<ClubDTO>> => {
+    const response = await apiClient.get<PageResponse<ClubDTO>>('/api/v1/admin/clubs', { params });
+    return response.data;
+  },
+
+  /** Get paginated list of users */
+  getUsers: async (params: {
+    accountStatus?: AccountStatus;
+    roleName?: string;
+    offset?: number;
+    pageSize?: number;
+  }): Promise<PageResponse<UserBasicDTO>> => {
+    const response = await apiClient.get<PageResponse<UserBasicDTO>>('/api/v1/admin/users', { params });
+    return response.data;
+  },
+
+  /** Promote user to faculty */
+  promoteToFaculty: async (userId: string): Promise<UserProfileResponse> => {
+    const response = await apiClient.put<UserProfileResponse>(`/api/v1/admin/users/${userId}/promote-faculty`);
+    return response.data;
+  },
+
+  /** Suspend a user */
+  suspendUser: async (userId: string, reason: UserSuspensionReason): Promise<UserProfileResponse> => {
+    const response = await apiClient.put<UserProfileResponse>(`/api/v1/admin/users/${userId}/suspend`, reason);
+    return response.data;
+  },
+
+  /** Get organizer verification requests */
+  getOrganizerVerifications: async (params?: {
+    status?: VerificationStatus;
+    offset?: number;
+    pageSize?: number;
+  }): Promise<PageResponse<OrganizerVerificationResponse>> => {
+    const response = await apiClient.get<PageResponse<OrganizerVerificationResponse>>(
+      '/api/v1/admin/organization-verification',
+      { params }
+    );
+    return response.data;
+  },
+
+  /** Get single organizer verification request */
+  getOrganizerVerification: async (id: string): Promise<OrganizerVerificationResponse> => {
+    const response = await apiClient.get<OrganizerVerificationResponse>(
+      `/api/v1/admin/organization-verification/${id}`
+    );
+    return response.data;
+  },
+
+  /** Approve organizer verification */
+  approveOrganizer: async (id: string): Promise<MessageResponse> => {
+    const response = await apiClient.put<MessageResponse>(
+      `/api/v1/admin/organization-verification/${id}/approve`
+    );
+    return response.data;
+  },
+
+  /** Reject organizer verification */
+  rejectOrganizer: async (id: string, reason: OrganizerRejectionReason): Promise<MessageResponse> => {
+    const response = await apiClient.put<MessageResponse>(
+      `/api/v1/admin/organization-verification/${id}/reject`,
+      reason
+    );
     return response.data;
   },
 };
