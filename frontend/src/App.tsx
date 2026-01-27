@@ -5,6 +5,8 @@ import EventsPage from './pages/EventsPage';
 import SignIn from './pages/auth/SignIn';
 import SignUp from './pages/auth/SignUp';
 import VerifyEmail from './pages/auth/VerifyEmail';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import { ThemeProvider } from './components/theme-provider';
 
 // Club pages
@@ -15,6 +17,9 @@ import ClubDashboard from './pages/clubs/ClubDashboard';
 
 // Admin pages
 import AdminClubsPage from './pages/admin/AdminClubsPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import OrganizerVerificationPage from './pages/admin/OrganizerVerificationPage';
 
 // Event pages
 import CreateEventPage from './pages/events/CreateEventPage';
@@ -22,6 +27,8 @@ import EventDetailPage from './pages/events/EventDetailPage';
 
 // User pages
 import UserRegistrationsPage from './pages/UserRegistrationsPage';
+import UserProfilePage from './pages/profile/UserProfilePage';
+import EditProfilePage from './pages/profile/EditProfilePage';
 
 // Event registration management
 import { EventRegistrationsList } from './components/events/EventRegistrationsList';
@@ -40,6 +47,8 @@ function App() {
           <Route path="/auth/signin" element={<SignIn />} />
           <Route path="/auth/signup" element={<SignUp />} />
           <Route path="/auth/verify-email" element={<VerifyEmail />} />
+          <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+          <Route path="/auth/reset-password" element={<ResetPassword />} />
 
           {/* Club routes */}
           <Route path="/clubs" element={<ClubsPage />} />
@@ -55,9 +64,15 @@ function App() {
 
           {/* User routes (protected) */}
           <Route path="/my-registrations" element={<UserRegistrationsPage />} />
+          <Route path="/profile" element={<UserProfilePage />} />
+          <Route path="/profile/edit" element={<EditProfilePage />} />
+          <Route path="/users/:emailId" element={<UserProfilePage />} />
 
           {/* Admin routes (protected - for faculty/superadmin) */}
+          <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/clubs" element={<AdminClubsPage />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/organizer-verification" element={<OrganizerVerificationPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
@@ -65,4 +80,3 @@ function App() {
 }
 
 export default App;
-

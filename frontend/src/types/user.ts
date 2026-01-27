@@ -22,3 +22,27 @@ export interface UserSummary {
   lastName: string;
   email: string;
 }
+
+/** User profile response from backend */
+export interface UserProfileResponse {
+  id: string;
+  email: string;
+  phone: string;
+  universityId: string;
+  roles: RoleName[];
+  accountStatus: 'ACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION';
+  createdAt: string;
+  lastLogin?: string;
+  clubMemberships?: {
+    clubSlug: string;
+    clubName: string;
+    role: 'MEMBER' | 'LEADER';
+    joinedAt: string;
+  }[];
+}
+
+/** Request to update user profile */
+export interface UpdateUserProfileRequest {
+  phone?: string;
+  universityId?: string;
+}
