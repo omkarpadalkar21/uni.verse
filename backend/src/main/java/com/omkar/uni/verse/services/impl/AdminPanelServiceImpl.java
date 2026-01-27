@@ -8,14 +8,18 @@ import com.omkar.uni.verse.domain.dto.clubs.ClubDTO;
 import com.omkar.uni.verse.domain.dto.user.UserBasicDTO;
 import com.omkar.uni.verse.domain.dto.user.UserProfileResponse;
 import com.omkar.uni.verse.domain.entities.clubs.ClubStatus;
+import com.omkar.uni.verse.domain.entities.clubs.OrganizerVerification;
+import com.omkar.uni.verse.domain.entities.clubs.VerificationStatus;
 import com.omkar.uni.verse.domain.entities.events.EventStatus;
 import com.omkar.uni.verse.domain.entities.user.AccountStatus;
 import com.omkar.uni.verse.domain.entities.user.RoleName;
 import com.omkar.uni.verse.domain.entities.user.User;
 import com.omkar.uni.verse.mappers.ClubMapper;
+import com.omkar.uni.verse.mappers.OrganizerVerificationMapper;
 import com.omkar.uni.verse.mappers.UserMapper;
 import com.omkar.uni.verse.repository.ClubRepository;
 import com.omkar.uni.verse.repository.EventRepository;
+import com.omkar.uni.verse.repository.OrganizerVerificationRepository;
 import com.omkar.uni.verse.repository.UserRepository;
 import com.omkar.uni.verse.services.AdminPanelService;
 import com.omkar.uni.verse.utils.PaginationValidator;
@@ -27,6 +31,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,7 +45,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class AdminPanelServiceImpl implements AdminPanelService {
+    private final OrganizerVerificationMapper organizerVerificationMapper;
 
+    private final OrganizerVerificationRepository organizerVerificationRepository;
     @Value("${platform.superadmin.count}")
     private int superAdminCount;
 
@@ -266,13 +273,28 @@ public class AdminPanelServiceImpl implements AdminPanelService {
     }
 
     @Override
-    public MessageResponse approveOrganizers() {
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
+    @Transactional(rollbackFor = Exception.class)
+    public MessageResponse approveOrganizers(UUID requestId) {
+        OrganizerVerification verification = organizerVerificationRepository.findById(requestId)
+                .orElseThrow(()-> new EntityNotFoundException("Organization Verification request not found"));
+
+
         return null;
     }
 
     @Override
-    public Page<OrganizerVerificationResponse> getOrganizerVerificationRequests() {
-        return null;
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
+    public Page<OrganizerVerificationResponse> getOrganizerVerificationRequests(
+            VerificationStatus status, int offset, int pageSize
+    ) {
+        PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(
+                offset,
+                pageSize,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        return organizerVerificationRepository.getAllByStatus(status, pageRequest).map(organizerVerificationMapper::toOrganizerVerificationResponse);
     }
 
     private User getCurrentUser() {
