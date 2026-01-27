@@ -25,7 +25,7 @@ public class EmailTest {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("from.uni.verse.dev@gmail.com");
         message.setTo("omkarpadalkar21@gmail.com");
-        message.setSubject("Simple test suspensionReason from UniVerse");
+        message.setSubject("Simple test message from UniVerse");
         message.setText("Hello from Universe");
         javaMailSender.send(message);
     }

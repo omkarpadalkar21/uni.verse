@@ -44,7 +44,7 @@ public class ClubJoinRequest {
     private JoinRequestStatus status = JoinRequestStatus.PENDING;
 
     @Column(columnDefinition = "TEXT")
-    private String message; // suspensionReason sent by user when requesting
+    private String message; // message sent by user when requesting
 
     @Column(columnDefinition = "TEXT")
     private String rejectionReason;

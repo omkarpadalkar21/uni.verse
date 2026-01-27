@@ -1,6 +1,7 @@
 package com.omkar.uni.verse.services.impl;
 
 import com.omkar.uni.verse.domain.dto.MessageResponse;
+import com.omkar.uni.verse.domain.dto.admin.OrganizerRejectionReason;
 import com.omkar.uni.verse.domain.dto.admin.OrganizerVerificationResponse;
 import com.omkar.uni.verse.domain.dto.admin.PlatformStatsDTO;
 import com.omkar.uni.verse.domain.dto.admin.UserSuspensionReason;
@@ -194,7 +195,7 @@ public class AdminPanelServiceImpl implements AdminPanelService {
                     return new EntityNotFoundException("User with ID " + userId + " not found");
                 });
 
-        log.info("Attempting to suspend user: {} with reason: {}", userToBeSuspended.getEmail(), suspensionReason.suspensionReason());
+        log.info("Attempting to suspend user: {} with reason: {}", userToBeSuspended.getEmail(), suspensionReason.message());
         // Prevent self-suspension
         User currentUser = getCurrentUser();
         if (currentUser.getId().equals(userId)) {
@@ -221,7 +222,7 @@ public class AdminPanelServiceImpl implements AdminPanelService {
         // Set suspension metadata
         userToBeSuspended.setSuspendedAt(LocalDateTime.now());
         userToBeSuspended.setSuspendedBy(currentUser);
-        userToBeSuspended.setSuspensionReason(suspensionReason.suspensionReason());
+        userToBeSuspended.setSuspensionReason(suspensionReason.message());
 
         // CRITICAL FIX: Actually set the account status to SUSPENDED
         userToBeSuspended.setAccountStatus(AccountStatus.SUSPENDED);
@@ -229,7 +230,7 @@ public class AdminPanelServiceImpl implements AdminPanelService {
         userRepository.save(userToBeSuspended);
 
         log.warn("User {} suspended by {} (role: {}) for reason: {}",
-                userId, currentUser.getId(), currentUser.getRole(), suspensionReason.suspensionReason());
+                userId, currentUser.getId(), currentUser.getRole(), suspensionReason.message());
 
         return userMapper.toUserProfileResponse(userToBeSuspended);
     }
@@ -278,10 +279,44 @@ public class AdminPanelServiceImpl implements AdminPanelService {
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(cacheNames = "organizerVerificationRequests", allEntries = true)
-    public MessageResponse approveOrganizers(UUID requestId) {
-        OrganizerVerification verification = organizerVerificationRepository.findById(requestId)
+    public MessageResponse approveOrganizer(UUID id) {
+        OrganizerVerification verification = organizerVerificationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Organization Verification request not found"));
-        return null;
+
+        verification.setStatus(VerificationStatus.APPROVED);
+        verification.setReviewedBy(getCurrentUser());
+        verification.setReviewedAt(LocalDateTime.now());
+        organizerVerificationRepository.save(verification);
+
+        User userToBeVerified = verification.getUser();
+        userToBeVerified.setAccountStatus(AccountStatus.ACTIVE);
+        userRepository.save(userToBeVerified);
+
+
+        log.info("Successfully verified Organizer: {}", verification.getUser().getEmail());
+        return new MessageResponse("Organizer successfully verified");
+    }
+
+    @Override
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "organizerVerificationRequests", allEntries = true)
+    public MessageResponse rejectOrganizer(UUID id, OrganizerRejectionReason rejectionReason) {
+        OrganizerVerification verification = organizerVerificationRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Organization Verification request not found"));
+
+        verification.setStatus(VerificationStatus.REJECTED);
+        verification.setRejectionReason(rejectionReason.message());
+        verification.setReviewedBy(getCurrentUser());
+        verification.setReviewedAt(LocalDateTime.now());
+        organizerVerificationRepository.save(verification);
+
+        User userToBeRejected = verification.getUser();
+        userToBeRejected.setAccountStatus(AccountStatus.SUSPENDED);
+        userRepository.save(userToBeRejected);
+
+        log.info("Organizer verification rejected for: {}", verification.getUser().getEmail());
+        return new MessageResponse("Organizer verification rejected");
     }
 
     @Override
@@ -299,7 +334,7 @@ public class AdminPanelServiceImpl implements AdminPanelService {
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
-        return organizerVerificationRepository.getAllByStatus(status, pageRequest).map(organizerVerificationMapper::toOrganizerVerificationResponse);
+        return organizerVerificationRepository.getAllByStatus(status == null ? VerificationStatus.PENDING : status, pageRequest).map(organizerVerificationMapper::toOrganizerVerificationResponse);
     }
 
     @Override

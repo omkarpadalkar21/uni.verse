@@ -47,7 +47,6 @@ public class S3ServiceImpl implements S3Service {
         // Upload to S3
         s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
 
-        // Return the S3 key (object path) - NOT a URL
         // This key is stored in the database and used later to generate pre-signed URLs for retrieval
         return key;
     }
