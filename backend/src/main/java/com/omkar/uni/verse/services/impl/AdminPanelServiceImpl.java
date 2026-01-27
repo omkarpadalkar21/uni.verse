@@ -22,6 +22,7 @@ import com.omkar.uni.verse.repository.EventRepository;
 import com.omkar.uni.verse.repository.OrganizerVerificationRepository;
 import com.omkar.uni.verse.repository.UserRepository;
 import com.omkar.uni.verse.services.AdminPanelService;
+import com.omkar.uni.verse.services.S3Service;
 import com.omkar.uni.verse.utils.PaginationValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,7 @@ public class AdminPanelServiceImpl implements AdminPanelService {
     private final OrganizerVerificationMapper organizerVerificationMapper;
 
     private final OrganizerVerificationRepository organizerVerificationRepository;
+    private final S3Service s3Service;
     @Value("${platform.superadmin.count}")
     private int superAdminCount;
 
@@ -275,16 +277,19 @@ public class AdminPanelServiceImpl implements AdminPanelService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "organizerVerificationRequests", allEntries = true)
     public MessageResponse approveOrganizers(UUID requestId) {
         OrganizerVerification verification = organizerVerificationRepository.findById(requestId)
-                .orElseThrow(()-> new EntityNotFoundException("Organization Verification request not found"));
-
-
+                .orElseThrow(() -> new EntityNotFoundException("Organization Verification request not found"));
         return null;
     }
 
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
+    @Cacheable(
+            cacheNames = "organizerVerificationRequests",
+            key = "'status=' + #status + ',page=' + #offset + ',size=' + #pageSize"
+    )
     public Page<OrganizerVerificationResponse> getOrganizerVerificationRequests(
             VerificationStatus status, int offset, int pageSize
     ) {
@@ -295,6 +300,22 @@ public class AdminPanelServiceImpl implements AdminPanelService {
         );
 
         return organizerVerificationRepository.getAllByStatus(status, pageRequest).map(organizerVerificationMapper::toOrganizerVerificationResponse);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
+    @Transactional(readOnly = true)
+    public OrganizerVerificationResponse getOrganizerVerificationRequest(UUID id) {
+        OrganizerVerification verification = organizerVerificationRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Organization Verification request not found"));
+
+        OrganizerVerificationResponse response = organizerVerificationMapper.toOrganizerVerificationResponse(verification);
+        // Generate a pre-signed URL for streaming the document directly from S3
+        response.setVerificationDocumentUrl(s3Service.generateGetPreSignedUrl(verification.getDocumentUrl()));
+        log.debug("Generated pre-signed URL for verification document: {} (expires in 60 minutes)",
+                verification.getDocumentUrl());
+
+        return response;
     }
 
     private User getCurrentUser() {

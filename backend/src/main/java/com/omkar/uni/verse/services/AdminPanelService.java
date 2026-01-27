@@ -31,4 +31,5 @@ public interface AdminPanelService {
 
     Page<OrganizerVerificationResponse> getOrganizerVerificationRequests(VerificationStatus status, int offset, int pageSize);
 
+    public OrganizerVerificationResponse getOrganizerVerificationRequest(UUID id);
 }

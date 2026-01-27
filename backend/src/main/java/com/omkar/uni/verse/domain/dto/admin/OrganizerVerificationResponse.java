@@ -17,4 +17,5 @@ public class OrganizerVerificationResponse {
     private String documentType;
     private LocalDateTime reviewedAt;
     private LocalDateTime createdAt;
+    private String verificationDocumentUrl; // Pre-signed URL for streaming the document
 }
