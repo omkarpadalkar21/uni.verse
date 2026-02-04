@@ -50,7 +50,7 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
                 .getAuthentication()
                 .getPrincipal();
 
-        Event event = eventRepository.findById(eventId)
+        Event event = eventRepository.findByIdAndStatus(eventId, EventStatus.PUBLISHED)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found"));
 
         if (!event.getClub().getSlug().equals(slug)) {
@@ -122,8 +122,8 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(
-            cacheNames = "userEventRegistrations",
-            key = "T(org.springframework.security.core.context.SecurityContextHolder).getContext().getAuthentication().getPrincipal().getEmail() + ':status=' + (#status != null ? #status : 'ALL') + ':page=' + #offset + ':size=' + #pageSize"
+            cacheNames = "userEventRegistrations"
+            
     )
     public Page<EventRegistrationSummary> getUserEventRegistrations(EventRegistrationStatus status, int offset, int pageSize) {
         User currentUser = (User) SecurityContextHolder.getContext()
@@ -166,8 +166,8 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
             throw new AccessDeniedException("You are not authorized to perform this action");
         }
 
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        Event event = eventRepository.findByIdAndStatus(eventId, EventStatus.PUBLISHED)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found or not published"));
 
         if (!event.getClub().getSlug().equals(slug)) {
             throw new AccessDeniedException("Event does not belong to this club");
@@ -211,8 +211,8 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
             throw new AccessDeniedException("You are not authorized to perform this action");
         }
 
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        Event event = eventRepository.findByIdAndStatus(eventId, EventStatus.PUBLISHED)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found or not published"));
 
         if (!event.getClub().getSlug().equals(slug)) {
             throw new AccessDeniedException("Event does not belong to this club");
@@ -249,8 +249,8 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
                 .getAuthentication()
                 .getPrincipal();
 
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        Event event = eventRepository.findByIdAndStatus(eventId, EventStatus.PUBLISHED)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found or not published"));
 
         if (!event.getClub().getSlug().equals(slug)) {
             throw new AccessDeniedException("Event does not belong to this club");
