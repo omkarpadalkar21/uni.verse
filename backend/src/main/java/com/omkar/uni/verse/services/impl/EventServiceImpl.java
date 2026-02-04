@@ -61,7 +61,7 @@ public class EventServiceImpl implements EventService {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = "event", key = "#id")
     public EventResponse getEventById(UUID id) {
-        Event event = eventRepository.findById(id)
+        Event event = eventRepository.findByIdAndStatus(id, EventStatus.PUBLISHED)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found"));
 
         // Check if user is authenticated and registered for this event

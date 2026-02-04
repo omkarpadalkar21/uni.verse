@@ -3,6 +3,7 @@ package com.omkar.uni.verse.domain.entities.events;
 import com.omkar.uni.verse.domain.entities.booking.Booking;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 @Entity
 @Table(
@@ -31,4 +32,5 @@ public class BookingSeat {
     @MapsId("eventSeatId")
     @JoinColumn(name = "event_seat_id", nullable = false)
     private EventSeats eventSeat;
+
 }
