@@ -1,8 +1,10 @@
 package com.omkar.uni.verse.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import com.omkar.uni.verse.domain.entities.events.SeatStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -18,4 +20,5 @@ public interface EventSeatsRepository extends JpaRepository<EventSeats, Long> {
     @Query("SELECT COUNT(es) FROM EventSeats es WHERE es.event.id = :eventId AND es.status = 'BOOKED'")
     Long countBookedSeatsByEventId(@Param("eventId") UUID eventId);
 
+    List<EventSeats> findByStatusAndLockExpiresAtIsBefore(SeatStatus status, LocalDateTime lockExpiresAtBefore);
 }
