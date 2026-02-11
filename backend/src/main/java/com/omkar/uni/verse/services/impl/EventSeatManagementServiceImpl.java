@@ -50,7 +50,7 @@ public class EventSeatManagementServiceImpl implements EventSeatManagementServic
     @Cacheable(cacheNames = "venues", key = "'page='+ #pageSize + ',offset=' + #offset")
     public Page<VenueSummary> getAllVenues(int pageSize, int offset) {
         PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(pageSize, offset);
-        return eventVenueRepository.getAll(pageRequest).map(venueMapper::toSummary);
+        return eventVenueRepository.findAll(pageRequest).map(venueMapper::toSummary);
     }
 
     @Override

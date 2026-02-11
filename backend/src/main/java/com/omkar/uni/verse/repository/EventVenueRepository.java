@@ -12,5 +12,4 @@ import java.util.Optional;
 public interface EventVenueRepository extends JpaRepository<EventVenue, Integer> {
     Optional<EventVenue> findById(Integer id);
 
-    Page<EventVenue> getAll(Pageable pageable);
 }
