@@ -1,5 +1,6 @@
 package com.omkar.uni.verse.services.impl;
 
+import com.omkar.uni.verse.domain.dto.events.BookingSeatDTO;
 import com.omkar.uni.verse.domain.dto.events.bookings.BatchLockResult;
 import com.omkar.uni.verse.domain.dto.events.bookings.LockResult;
 import com.omkar.uni.verse.domain.entities.events.EventSeats;
@@ -11,6 +12,7 @@ import com.omkar.uni.verse.services.SeatBookingService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,7 @@ public class SeatBookingServiceImpl implements SeatBookingService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "eventSeats", allEntries = true)
     public LockResult lockSeat(Long seatId) {
         String lockToken = UUID.randomUUID().toString();
         String resource = "seat:" + seatId;
@@ -89,7 +92,12 @@ public class SeatBookingServiceImpl implements SeatBookingService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void confirmSeatBooking(Long seatId) {
+    @CacheEvict(
+            cacheNames = "eventSeats",
+            key = "#result != null && #result.booking != null ? 'id=' + #result.booking.eventId : 'empty'",
+            condition = "#result != null"
+    )
+    public BookingSeatDTO confirmSeatBooking(Long seatId) {
         String lockToken = UUID.randomUUID().toString();
         String resource = "seat:" + seatId;
 
@@ -127,10 +135,13 @@ public class SeatBookingServiceImpl implements SeatBookingService {
         } finally {
             redisLockService.unlock(resource, lockToken);
         }
+
+        return new BookingSeatDTO();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "eventSeats", allEntries = true)
     public void releaseLockSeat(Long seatId) {
         String lockToken = UUID.randomUUID().toString();
         String resource = "seat:" + seatId;
@@ -163,6 +174,7 @@ public class SeatBookingServiceImpl implements SeatBookingService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "eventSeats", allEntries = true)
     public BatchLockResult lockMultipleSeats(List<Long> eventSeatIds) {
         if (eventSeatIds == null || eventSeatIds.isEmpty()) {
             return BatchLockResult.failure("No seats provided");
