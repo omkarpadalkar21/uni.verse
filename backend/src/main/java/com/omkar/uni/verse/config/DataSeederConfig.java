@@ -28,7 +28,7 @@ public class DataSeederConfig {
             log.info("Starting test user data seeding...");
 
             // Check if users already exist to avoid duplicates
-            if (userRepository.findByEmail("user@jaipur.manipal.edu").isPresent()) {
+            if (userRepository.findByEmail("user@muj.manipal.edu").isPresent()) {
                 log.info("Test users already exist. Skipping seeding.");
                 return;
             }
