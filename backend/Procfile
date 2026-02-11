@@ -1,1 +1,1 @@
-web: java -Xmx300m -Xss512k -XX:CICompilerCount=2 -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+UseStringDeduplication -XX:+OptimizeStringConcat -Dserver.port=$PORT -Dspring.profiles.active=heroku $JAVA_OPTS -jar target/*.jar
+web: java -Dserver.port=$PORT -Dspring.profiles.active=heroku -XX:+UseStringDeduplication -XX:+OptimizeStringConcat -XX:MaxMetaspaceSize=100m -XX:ReservedCodeCacheSize=20m $JAVA_OPTS -jar target/*.jar
