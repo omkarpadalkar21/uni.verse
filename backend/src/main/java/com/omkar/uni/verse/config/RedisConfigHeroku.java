@@ -12,6 +12,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -75,6 +78,45 @@ public class RedisConfigHeroku {
     public StatefulRedisConnection<String, byte[]> redisConnection(RedisClient redisClient) {
         RedisCodec<String, byte[]> codec = RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE);
         return redisClient.connect(codec);
+    }
+
+    // Spring Data Redis connection factory
+    @Bean
+    public RedisConnectionFactory redisConnectionFactory() {
+        try {
+            URI redisUri = URI.create(redisUrl);
+            
+            RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration();
+            redisConfig.setHostName(redisUri.getHost());
+            redisConfig.setPort(redisUri.getPort());
+            
+            // Extract password from userInfo
+            String userInfo = redisUri.getUserInfo();
+            if (userInfo != null && userInfo.contains(":")) {
+                String password = userInfo.split(":", 2)[1];
+                redisConfig.setPassword(password);
+            }
+
+            // Configure SSL with disabled peer verification
+            io.lettuce.core.SslOptions sslOptions = io.lettuce.core.SslOptions.builder()
+                    .jdkSslProvider()
+                    .build();
+
+            io.lettuce.core.ClientOptions clientOptions = io.lettuce.core.ClientOptions.builder()
+                    .sslOptions(sslOptions)
+                    .build();
+
+            org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration clientConfig = 
+                    org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration.builder()
+                    .clientOptions(clientOptions)
+                    .useSsl()
+                    .disablePeerVerification()
+                    .build();
+
+            return new org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory(redisConfig, clientConfig);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to create RedisConnectionFactory: " + redisUrl, e);
+        }
     }
 
     // Manages bucket instances across server instances and handles bucket expiration to free memory
