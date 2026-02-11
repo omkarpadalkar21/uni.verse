@@ -1,5 +1,6 @@
 package com.omkar.uni.verse.config;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
 
@@ -27,27 +28,40 @@ import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.codec.StringCodec;
 import org.springframework.cache.annotation.EnableCaching;
 
+/**
+ * Redis configuration for Heroku environment.
+ * Parses REDIS_URL in format: rediss://h:password@host:port
+ */
 @Configuration
 @EnableCaching
-@Profile("!heroku") // Don't use this config for Heroku; use RedisConfigHeroku instead
-public class RedisConfig {
-    @Value("${spring.data.redis.port}")
-    private int redisPort;
-    @Value("${spring.data.redis.host}")
-    private String redisHost;
-    @Value("${spring.data.redis.password}")
-    private String redisPassword;
+@Profile("heroku")
+public class RedisConfigHeroku {
+    
+    @Value("${REDIS_URL}")
+    private String redisUrl;
 
-    // Creates connection to Redis server
+    // Creates connection to Redis server using REDIS_URL
     @Bean
     public RedisClient redisClient() {
-        RedisURI.Builder builder = RedisURI.Builder
-                .redis(redisHost, redisPort);
-
-        if (redisPassword != null && !redisPassword.isEmpty()) {
-            builder.withPassword(redisPassword.toCharArray());
+        try {
+            // Parse REDIS_URL: rediss://h:password@host:port
+            URI redisUri = URI.create(redisUrl);
+            
+            RedisURI.Builder builder = RedisURI.Builder
+                    .redis(redisUri.getHost(), redisUri.getPort())
+                    .withSsl(redisUri.getScheme().equals("rediss"));
+            
+            // Extract password from userInfo (format: "h:password" or "default:password")
+            String userInfo = redisUri.getUserInfo();
+            if (userInfo != null && userInfo.contains(":")) {
+                String password = userInfo.split (":", 2)[1];
+                builder.withPassword(password.toCharArray());
+            }
+            
+            return RedisClient.create(builder.build());
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to parse REDIS_URL: " + redisUrl, e);
         }
-        return RedisClient.create(builder.build());
     }
 
     // Maintains persistent connection with custom codec for storing buckets as bytes
