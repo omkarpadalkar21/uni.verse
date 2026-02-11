@@ -18,7 +18,8 @@ public class CorsConfig {
         // Allow frontend origin
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",  // Vite dev server
-                "http://localhost:3000"   // Alternative frontend port
+                "http://localhost:3000",   // Alternative frontend port
+                "https://universe-ashy-seven.vercel.app/"
         ));
         
         // Allow all HTTP methods
