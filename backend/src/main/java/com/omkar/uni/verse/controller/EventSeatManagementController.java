@@ -43,12 +43,12 @@ public class EventSeatManagementController {
         );
     }
 
-    @GetMapping("/events/${id}/seats")
+    @GetMapping("/events/{id}/seats")
     public ResponseEntity<EventSeatResponse> getEventSeats(@PathVariable UUID id) {
         return ResponseEntity.ok().body(eventSeatManagementService.getEventSeats(id));
     }
 
-    @PostMapping("/booking/${id}/lock")
+    @PostMapping("/booking/{id}/lock")
     public ResponseEntity<LockResult> lockSeat(@PathVariable Long id) {
         return new ResponseEntity<>(
                 seatBookingService.lockSeat(id),
@@ -56,7 +56,7 @@ public class EventSeatManagementController {
         );
     }
 
-    @PostMapping("/booking/${id}/lock/release")
+    @PostMapping("/booking/{id}/lock/release")
     public void releaseLockSeat(@PathVariable Long id) {
         seatBookingService.releaseLockSeat(id);
     }
