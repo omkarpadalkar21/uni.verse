@@ -64,7 +64,7 @@ public class ClubManagementController {
         return ResponseEntity.ok().body(clubManagementService.getAllClubMembers(slug, page, size));
     }
 
-    @PutMapping("/members/[userId}/promote")
+    @PutMapping("/members/{userId}/promote")
     public ResponseEntity<ClubManagementResponse> promoteClubMember(@PathVariable String slug, @PathVariable UUID userId) {
         return ResponseEntity.ok().body(clubManagementService.promoteClubMember(slug, userId));
     }
