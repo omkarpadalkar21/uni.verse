@@ -1,1 +1,1 @@
-web: java -Dserver.port=$PORT -Dspring.profiles.active=heroku -XX:+UseStringDeduplication -XX:+OptimizeStringConcat -XX:MaxMetaspaceSize=150m -XX:ReservedCodeCacheSize=20m $JAVA_OPTS -jar target/*.jar
+web: java -Dserver.port=$PORT -Dspring.profiles.active=heroku -XX:+UseStringDeduplication -XX:+OptimizeStringConcat $JAVA_OPTS -jar target/*.jar
