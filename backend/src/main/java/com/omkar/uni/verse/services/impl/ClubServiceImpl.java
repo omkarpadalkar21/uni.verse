@@ -86,10 +86,6 @@ public class ClubServiceImpl implements ClubService {
     }
 
     @Override
-    @Cacheable(
-            cacheNames = "clubs",
-            key = "'page=' + #offset + ',size=' + #pageSize"
-    )
     public Page<ClubDTO> getAllClubs(int offset, int pageSize) {
         log.debug("Fetching all active clubs - page: {}, size: {}", offset, pageSize);
 
