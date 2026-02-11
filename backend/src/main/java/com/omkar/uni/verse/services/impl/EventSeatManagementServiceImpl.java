@@ -7,7 +7,7 @@ import com.omkar.uni.verse.mappers.VenueMapper;
 import com.omkar.uni.verse.repository.EventRepository;
 import com.omkar.uni.verse.repository.EventSeatsRepository;
 import com.omkar.uni.verse.repository.EventVenueRepository;
-import com.omkar.uni.verse.services.EventSeatManagement;
+import com.omkar.uni.verse.services.EventSeatManagementService;
 import com.omkar.uni.verse.utils.PaginationValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class EventSeatManagementImpl implements EventSeatManagement {
+public class EventSeatManagementServiceImpl implements EventSeatManagementService {
 
     private final VenueMapper venueMapper;
     private final EventVenueRepository eventVenueRepository;
@@ -85,19 +85,19 @@ public class EventSeatManagementImpl implements EventSeatManagement {
         );
     }
 
-    @Override
-    @CacheEvict(cacheNames = "eventSeats", allEntries = true)
-    public SeatLockResponse lockSeats(UUID eventId, List<Long> seatIds) {
-        return null;
-    }
-
-    @Override
-    @CacheEvict(
-            cacheNames = "eventSeats",
-            key = "#result != null && #result.booking != null ? 'id=' + #result.booking.eventId : 'empty'",
-            condition = "#result != null"
-    )
-    public BookingSeatDTO bookingConfirmation(UUID bookingId) {
-        return null;
-    }
+//    @Override
+//    @CacheEvict(cacheNames = "eventSeats", allEntries = true)
+//    public SeatLockResponse lockSeats(UUID eventId, List<Long> seatIds) {
+//        return null;
+//    }
+//
+//    @Override
+//    @CacheEvict(
+//            cacheNames = "eventSeats",
+//            key = "#result != null && #result.booking != null ? 'id=' + #result.booking.eventId : 'empty'",
+//            condition = "#result != null"
+//    )
+//    public BookingSeatDTO bookingConfirmation(UUID bookingId) {
+//        return null;
+//    }
 }
