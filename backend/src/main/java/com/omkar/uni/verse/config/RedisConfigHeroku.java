@@ -48,8 +48,14 @@ public class RedisConfigHeroku {
             URI redisUri = URI.create(redisUrl);
             
             RedisURI.Builder builder = RedisURI.Builder
-                    .redis(redisUri.getHost(), redisUri.getPort())
-                    .withSsl(redisUri.getScheme().equals("rediss"));
+                    .redis(redisUri.getHost(), redisUri.getPort());
+            
+            // Enable SSL but disable verification for Heroku
+            // Heroku Redis uses SSL certs that may not be in the default truststore
+            if (redisUri.getScheme().equals("rediss")) {
+                builder.withSsl(true);
+                builder.withVerifyPeer(false);  // Disable SSL certificate verification
+            }
             
             // Extract password from userInfo (format: "h:password" or "default:password")
             String userInfo = redisUri.getUserInfo();
