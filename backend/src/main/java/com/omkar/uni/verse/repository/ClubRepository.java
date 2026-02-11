@@ -26,11 +26,11 @@ public interface ClubRepository extends JpaRepository<Club, UUID> {
     void decrementMemberCount(UUID id);
 
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE Club C SET c.eventCount = c.eventCount + 1 where c.id = :id")
+    @Query("UPDATE Club c SET c.eventCount = c.eventCount + 1 where c.id = :id")
     void incrementEventCount(UUID id);
 
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE Club C SET c.eventCount = c.eventCount - 1 where c.slug = :slug")
+    @Query("UPDATE Club c SET c.eventCount = c.eventCount - 1 where c.slug = :slug")
     void decrementEventCount(String slug);
 
     @Query("SELECT c FROM Club c LEFT JOIN FETCH c.leaders WHERE c.slug = :slug")
