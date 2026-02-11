@@ -33,3 +33,14 @@ build/
 .vscode/
 
 .env
+
+### Heroku Deployment Files ###
+# These files are only needed for Heroku deployment, not in GitHub
+Procfile
+system.properties
+setup-heroku-env.sh
+deploy.sh
+HEROKU_DEPLOYMENT.md
+DEPLOYMENT_CHECKLIST.md
+HEROKU_STUDENT_PLAN.md
+src/main/resources/application-heroku.properties
