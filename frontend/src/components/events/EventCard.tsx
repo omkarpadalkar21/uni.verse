@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { CATEGORY_COLORS as CAT_COLORS_CONST } from "@/constants/eventCategories";
 import type { Event } from "@/types/event";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -118,8 +119,8 @@ export function EventCard({ event }: EventCardProps) {
       </CardContent>
 
       <CardFooter className="p-4 pt-0 gap-3">
-        <Button className="flex-1" variant="outline">
-          View Details
+        <Button className="flex-1" variant="outline" asChild>
+          <Link to={`/events/${event.id}`}>View Details</Link>
         </Button>
         <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-red-500 hover:bg-red-50">
           <Heart className="h-5 w-5" />

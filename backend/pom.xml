@@ -91,7 +91,7 @@
 
         <!-- JJWT - 0.12.x is stable with modern Spring Boot -->
         <dependency>
-            <groupId>io.jsonwebtoken</groupId>
+                <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
             <version>0.12.6</version>
         </dependency>
