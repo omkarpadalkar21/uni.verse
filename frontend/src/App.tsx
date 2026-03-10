@@ -20,10 +20,13 @@ import AdminClubsPage from './pages/admin/AdminClubsPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import OrganizerVerificationPage from './pages/admin/OrganizerVerificationPage';
+import AdminVenuesPage from './pages/admin/AdminVenuesPage';
+import CreateVenuePage from './pages/admin/CreateVenuePage';
 
 // Event pages
 import CreateEventPage from './pages/events/CreateEventPage';
 import EventDetailPage from './pages/events/EventDetailPage';
+import EventSeatSelectionPage from './pages/events/EventSeatSelectionPage';
 
 // User pages
 import UserRegistrationsPage from './pages/UserRegistrationsPage';
@@ -42,6 +45,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/events" element={<EventsPage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
+          <Route path="/events/:id/seats" element={<EventSeatSelectionPage />} />
 
           {/* Auth routes */}
           <Route path="/auth/signin" element={<SignIn />} />
@@ -73,6 +77,8 @@ function App() {
           <Route path="/admin/clubs" element={<AdminClubsPage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
           <Route path="/admin/organizer-verification" element={<OrganizerVerificationPage />} />
+          <Route path="/admin/venues" element={<AdminVenuesPage />} />
+          <Route path="/admin/venues/create" element={<CreateVenuePage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
