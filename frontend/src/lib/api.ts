@@ -179,6 +179,8 @@ import type {
   EventCancelRequest,
   EventCategory,
 } from '@/types/event';
+import type { VenueSummary, CreateVenueRequest, EventSeatResponse } from '@/types/venue';
+import type { LockResult, BookingSeatDTO } from '@/types/booking';
 
 // ============ Club API ============
 export const clubApi = {
@@ -444,6 +446,41 @@ export const adminApi = {
       `/api/v1/admin/organization-verification/${id}/reject`,
       reason
     );
+    return response.data;
+  },
+};
+
+// ============ Venue API ============
+export const venueApi = {
+  getVenues: async (params?: { offset?: number; pageSize?: number }): Promise<PageResponse<VenueSummary>> => {
+    const response = await apiClient.get<PageResponse<VenueSummary>>('/api/venues', { params });
+    return response.data;
+  },
+
+  createVenue: async (data: CreateVenueRequest): Promise<VenueSummary> => {
+    const response = await apiClient.post<VenueSummary>('/api/venues', data);
+    return response.data;
+  },
+};
+
+// ============ Booking API ============
+export const bookingApi = {
+  getEventSeats: async (eventId: string): Promise<EventSeatResponse> => {
+    const response = await apiClient.get<EventSeatResponse>(`/api/events/${eventId}/seats`);
+    return response.data;
+  },
+
+  lockSeat: async (seatId: number): Promise<LockResult> => {
+    const response = await apiClient.post<LockResult>(`/api/booking/${seatId}/lock`);
+    return response.data;
+  },
+
+  releaseLockSeat: async (seatId: number): Promise<void> => {
+    await apiClient.post(`/api/booking/${seatId}/lock/release`);
+  },
+
+  confirmSeatBooking: async (seatId: number): Promise<BookingSeatDTO> => {
+    const response = await apiClient.post<BookingSeatDTO>(`/api/booking/${seatId}/confirm`);
     return response.data;
   },
 };
