@@ -15,8 +15,7 @@ import java.util.UUID;
         uniqueConstraints = @UniqueConstraint(columnNames = {"club_id", "user_id"}),
         indexes = {
                 @Index(name = "idx_club_members_club_id", columnList = "club_id"),
-                @Index(name = "idx_club_members_user_id", columnList = "user_id"),
-                @Index(name = "idx_club_members_role", columnList = "role"),
+                @Index(name = "idx_club_members_user_id", columnList = "user_id")
         }
 )
 @Getter

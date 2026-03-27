@@ -6,12 +6,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 @Embeddable
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class BookingSeatId implements Serializable {
-    private Long bookingId;
+    private UUID bookingId;
     private Long eventSeatId;
 }

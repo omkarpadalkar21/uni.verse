@@ -52,6 +52,7 @@ public class AuthenticationService {
     private final OrganizerVerificationTokenRepository organizerVerificationTokenRepository;
     private final UserMapper userMapper;
     private final S3Service s3Service;
+
     @Value("${spring.mail.username}")
     private String platformMailId;
 
