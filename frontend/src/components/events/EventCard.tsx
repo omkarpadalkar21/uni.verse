@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { CATEGORY_COLORS as CAT_COLORS_CONST } from "@/constants/eventCategories";
-import type { Event } from "@/types/event";
+import type { EventResponse } from "@/types/event";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 
 interface EventCardProps {
-  event: Event;
+  event: EventResponse;
 }
 
 export function EventCard({ event }: EventCardProps) {
@@ -27,7 +27,7 @@ export function EventCard({ event }: EventCardProps) {
   });
 
   const capacityPercentage = Math.min(
-    (event.registeredCount / event.capacity) * 100,
+    (event.registrationCount / event.capacity) * 100,
     100
   );
 
@@ -96,7 +96,7 @@ export function EventCard({ event }: EventCardProps) {
           </div>
           <div className="flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{event.venue}</span>
+            <span className="truncate">{event.venue?.name || event.type}</span>
           </div>
         </div>
 
@@ -104,7 +104,7 @@ export function EventCard({ event }: EventCardProps) {
         <div className="space-y-1.5 pt-1">
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">
-              {event.registeredCount} / {event.capacity} registered
+              {event.registrationCount} / {event.capacity} registered
             </span>
              <span className={cn(
                 "font-medium",

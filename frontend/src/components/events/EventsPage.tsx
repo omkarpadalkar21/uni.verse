@@ -1,22 +1,15 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { EventsSidebar } from "./EventsSidebar";
 import { EventsTopBar } from "./EventsTopBar";
 import { EventCard } from "./EventCard";
 import { EventCardList } from "./EventCardList";
 import { EventCardSkeleton } from "./EventCardSkeleton";
 import { EmptyState } from "./EmptyState";
-import { DUMMY_EVENTS } from "@/constants/eventCategories";
-import { filterEvents, type FilterState } from "@/utils/eventFilters";
+import { eventApi } from "@/lib/api";
+import type { EventResponse } from "@/types/event";
+import type { FilterState } from "@/utils/eventFilters";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-// Prompt says: "Main Layout Components: Collapsible Sidebar... Main Content Area... Top navigation bar..."
-// It doesn't explicitly mention the main site Navbar.
-// But usually pages have the main navbar. However, the design described ("Top Navigation Bar with search...") seems to replace or sit below the main navbar.
-// Given "Page Structure: Main Layout Components... Sidebar... Main Content Area... Top navigation bar", this sounds like an internal layout.
-// I'll assume the MAIN Navbar is part of the `src/pages/EventsPage.tsx` or `App.tsx` layout if it exists globally.
-// Looking at `LandingPage.tsx`, let's see if it uses Navbar.
-// `src/components/landing/Navbar` exists.
-// I will include the main Navbar in `src/pages/EventsPage.tsx` wrapper, and THIS component will be the content below it.
 
 export function EventsPage() {
   const [filters, setFilters] = useState<FilterState>({
@@ -31,15 +24,15 @@ export function EventsPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [events, setEvents] = useState<EventResponse[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<EventResponse[]>([]);
+
   // Load view preference from localStorage
   useEffect(() => {
     const savedView = localStorage.getItem("eventsViewMode");
     if (savedView === "grid" || savedView === "list") {
       setView(savedView);
     }
-    // Simulate initial API load
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
   }, []);
 
   const handleSetView = (newView: "grid" | "list") => {
@@ -47,9 +40,67 @@ export function EventsPage() {
     localStorage.setItem("eventsViewMode", newView);
   };
 
-  const filteredEvents = useMemo(() => {
-    return filterEvents(DUMMY_EVENTS, filters);
-  }, [filters]);
+  // Fetch events from API
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setIsLoading(true);
+      try {
+        // Build base params. Backend requires dateTime.
+        // If the dateFilter is 'upcoming', 'all' etc, we pass different dateTime.
+        // For now, let's just pass current date as baseline for 'upcoming' or 'all', 
+        // depending on what dateFilter is mapping to, but since dateFilter logic 
+        // was in filterEvents locally before, we can just fetch upcoming events 
+        // (dateTime=now) and filter locally for search queries etc if backend doesn't support them.
+        
+        let dateTimeStr = new Date().toISOString();
+        if (filters.dateFilter === "week") {
+          const d = new Date();
+          d.setDate(d.getDate() - d.getDay()); // Start of week
+          dateTimeStr = d.toISOString();
+        } else if (filters.dateFilter === "month") {
+          const d = new Date();
+          d.setDate(1); // Start of month
+          dateTimeStr = d.toISOString();
+        }
+
+        const res = await eventApi.getEvents({
+          clubId: filters.clubId?.toString(),
+          category: filters.categories.length === 1 ? (filters.categories[0] as any) : undefined,
+          dateTime: dateTimeStr,
+          offset: 0,
+          pageSize: 50,
+        });
+
+        const fetchedEvents = res.content || [];
+        setEvents(fetchedEvents);
+      } catch (error) {
+        console.error("Failed to fetch events:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchEvents();
+  }, [filters.clubId, filters.categories, filters.dateFilter]);
+
+  // Apply local filtering for things the backend doesn't handle natively
+  useEffect(() => {
+    let result = [...events];
+    
+    if (filters.searchQuery) {
+      const q = filters.searchQuery.toLowerCase();
+      result = result.filter(e => 
+        e.title.toLowerCase().includes(q) || 
+        e.description.toLowerCase().includes(q) ||
+        e.club.name.toLowerCase().includes(q)
+      );
+    }
+
+    if (filters.categories.length > 1) {
+       result = result.filter(e => filters.categories.includes(e.category));
+    }
+
+    setFilteredEvents(result);
+  }, [events, filters.searchQuery, filters.categories, filters.dateFilter]);
 
   const containerVariants = {
     hidden: { opacity: 0 },

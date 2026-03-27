@@ -1,4 +1,4 @@
-import type { Event } from "@/types/event";
+import type { EventResponse } from "@/types/event";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { CATEGORY_COLORS as CAT_COLORS_CONST } from "@/constants/eventCategories";
 
 interface EventCardListProps {
-  event: Event;
+  event: EventResponse;
 }
 
 export function EventCardList({ event }: EventCardListProps) {
@@ -66,13 +66,13 @@ export function EventCardList({ event }: EventCardListProps) {
             </div>
             <div className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5" />
-              <span className="truncate max-w-[150px]">{event.venue}</span>
+              <span className="truncate max-w-[150px]">{event.venue?.name || event.type}</span>
             </div>
           </div>
           
            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2">
               <Users className="h-3.5 w-3.5" />
-              <span>{event.registeredCount} / {event.capacity} registered</span>
+              <span>{event.registrationCount} / {event.capacity} registered</span>
            </div>
         </div>
 

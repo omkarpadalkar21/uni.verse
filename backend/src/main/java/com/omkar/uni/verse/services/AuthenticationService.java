@@ -120,6 +120,10 @@ public class AuthenticationService {
 
         EmailVerificationToken token = emailVerificationTokenRepository.findByUserAndOtp(user, hashedOtp)
                 .orElseThrow(() -> {
+                    if (organizerVerificationTokenRepository.findByUserAndOtp(user, hashedOtp).isPresent()) {
+                        log.warn("Organizer attempted to verify email normally without proof: {}", user.getEmail());
+                        return new IllegalArgumentException("Please upload your leadership proof along with your OTP to verify your organizer account");
+                    }
                     log.warn("Invalid OTP attempt for user: {}", user.getEmail());
                     return new IllegalArgumentException("Invalid OTP");
                 });
