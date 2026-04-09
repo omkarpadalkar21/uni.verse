@@ -13,14 +13,14 @@ import com.omkar.uni.verse.domain.entities.clubs.VerificationStatus;
 import com.omkar.uni.verse.domain.entities.events.EventStatus;
 import com.omkar.uni.verse.domain.entities.user.AccountStatus;
 import com.omkar.uni.verse.domain.entities.user.RoleName;
-import org.springframework.data.domain.Page;
+import com.omkar.uni.verse.domain.dto.PageResponse;
 
 import java.util.UUID;
 
 public interface AdminPanelService {
-    Page<ClubDTO> getClubs(ClubStatus status, int offset, int pageSize);
+    PageResponse<ClubDTO> getClubs(ClubStatus status, int offset, int pageSize);
 
-    Page<UserBasicDTO> getUsers(AccountStatus accountStatus, RoleName roleName, int offset, int pageSize);
+    PageResponse<UserBasicDTO> getUsers(AccountStatus accountStatus, RoleName roleName, int offset, int pageSize);
 
     UserProfileResponse promoteToFaculty(UUID userId);
 
@@ -32,7 +32,7 @@ public interface AdminPanelService {
 
     MessageResponse rejectOrganizer(UUID id, OrganizerRejectionReason rejectionReason);
 
-    Page<OrganizerVerificationResponse> getOrganizerVerificationRequests(VerificationStatus status, int offset, int pageSize);
+    PageResponse<OrganizerVerificationResponse> getOrganizerVerificationRequests(VerificationStatus status, int offset, int pageSize);
 
     OrganizerVerificationResponse getOrganizerVerificationRequest(UUID id);
 }

@@ -18,4 +18,7 @@ public interface ClubService {
 
     ClubResponse suspendClubBySlug(String slug);
 
+    /** Returns true if the currently authenticated CLUB_LEADER has already created a club. */
+    boolean hasMyClub();
+
 }

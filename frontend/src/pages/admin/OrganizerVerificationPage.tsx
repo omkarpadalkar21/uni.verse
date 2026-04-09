@@ -289,12 +289,26 @@ export default function OrganizerVerificationPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                setSelectedVerification(verification);
-                                setViewDialogOpen(true);
+                              onClick={async () => {
+                                setActionLoading(verification.id);
+                                try {
+                                  const fullVerification = await adminApi.getOrganizerVerification(verification.id);
+                                  setSelectedVerification(fullVerification);
+                                  setViewDialogOpen(true);
+                                } catch (err) {
+                                  console.error('Failed to load document:', err);
+                                  // Optionally toast error
+                                } finally {
+                                  setActionLoading(null);
+                                }
                               }}
+                              disabled={actionLoading === verification.id}
                             >
-                              <FileText className="h-4 w-4 mr-1" />
+                              {actionLoading === verification.id ? (
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              ) : (
+                                <FileText className="h-4 w-4 mr-1" />
+                              )}
                               View Document
                             </Button>
 
@@ -380,13 +394,13 @@ export default function OrganizerVerificationPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            {selectedVerification?.documentUrl ? (
+            {selectedVerification?.verificationDocumentUrl ? (
               <div className="space-y-4">
                 {/* Document Preview */}
                 <div className="border rounded-lg overflow-hidden">
-                  {selectedVerification.documentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                  {selectedVerification.verificationDocumentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                     <img
-                      src={selectedVerification.documentUrl}
+                      src={selectedVerification.verificationDocumentUrl}
                       alt="Verification document"
                       className="w-full h-auto max-h-96 object-contain bg-muted"
                     />
@@ -399,7 +413,7 @@ export default function OrganizerVerificationPage() {
                 </div>
                 <Button asChild className="w-full">
                   <a
-                    href={selectedVerification.documentUrl}
+                    href={selectedVerification.verificationDocumentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

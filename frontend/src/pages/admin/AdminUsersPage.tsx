@@ -287,19 +287,21 @@ export default function AdminUsersPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium truncate">{user.email}</span>
-                            <Badge
-                              variant="outline"
-                              className={getStatusBadgeColor(user.accountStatus)}
-                            >
-                              {user.accountStatus.replace('_', ' ')}
-                            </Badge>
+                            {user.accountStatus && (
+                              <Badge
+                                variant="outline"
+                                className={getStatusBadgeColor(user.accountStatus)}
+                              >
+                                {user.accountStatus.replace('_', ' ')}
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex flex-wrap items-center gap-2 mt-2">
                             <span className="text-sm text-muted-foreground font-mono">
                               {user.universityId}
                             </span>
                             <span className="text-muted-foreground">•</span>
-                            {user.roles.map((role) => (
+                            {(user.roles || []).map((role) => (
                               <Badge
                                 key={role}
                                 variant="outline"
@@ -316,7 +318,7 @@ export default function AdminUsersPage() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {user.accountStatus === 'ACTIVE' && !user.roles.includes('FACULTY') && !user.roles.includes('SUPERADMIN') && (
+                          {user.accountStatus === 'ACTIVE' && !(user.roles || []).includes('FACULTY') && !(user.roles || []).includes('SUPERADMIN') && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -344,7 +346,7 @@ export default function AdminUsersPage() {
                               <DropdownMenuItem asChild>
                                 <Link to={`/users/${user.email}`}>View Profile</Link>
                               </DropdownMenuItem>
-                              {user.accountStatus === 'ACTIVE' && !user.roles.includes('SUPERADMIN') && (
+                              {user.accountStatus === 'ACTIVE' && !(user.roles || []).includes('SUPERADMIN') && (
                                 <DropdownMenuItem
                                   onClick={() => {
                                     setSelectedUser(user);

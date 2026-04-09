@@ -4,9 +4,7 @@ import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   Mail,
-  Phone,
   School,
-  Calendar,
   Shield,
   Users,
   Edit,
@@ -61,7 +59,8 @@ export default function UserProfilePage() {
           const token = getAccessToken();
           if (token) {
             const decoded = jwtDecode<JwtPayload>(token);
-            setIsOwnProfile(decoded.sub === data.email);
+            // email may be absent in older cached responses — fall back to emailId param
+            setIsOwnProfile(decoded.sub === (data.email ?? emailId));
           }
         }
       } catch (err) {
@@ -75,13 +74,6 @@ export default function UserProfilePage() {
     fetchProfile();
   }, [emailId, navigate]);
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -128,11 +120,9 @@ export default function UserProfilePage() {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-3xl">
-          <Button variant="ghost" asChild className="mb-4">
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Link>
+          <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
           <Card>
             <CardContent className="py-16 text-center">
@@ -159,11 +149,9 @@ export default function UserProfilePage() {
         >
           {/* Header */}
           <div className="flex items-center justify-between">
-            <Button variant="ghost" asChild>
-              <Link to="/">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Link>
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
             </Button>
             {isOwnProfile && (
               <Button variant="outline" asChild>
@@ -181,23 +169,22 @@ export default function UserProfilePage() {
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <Avatar className="h-24 w-24 text-3xl">
                   <AvatarFallback className="bg-primary/20 text-primary">
-                    {profile.email.substring(0, 2).toUpperCase()}
+                    {(profile.email ?? profile.firstName ?? '?').substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-center sm:text-left">
-                  <CardTitle className="text-2xl">{profile.email.split('@')[0]}</CardTitle>
+                  <CardTitle className="text-2xl">{profile.firstName} {profile.lastName}</CardTitle>
                   <p className="text-muted-foreground mt-1">{profile.email}</p>
                   <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
-                    {profile.roles.map((role) => (
+                    {profile.role && (
                       <Badge
-                        key={role}
                         variant="outline"
-                        className={getRoleBadgeColor(role)}
+                        className={getRoleBadgeColor(profile.role)}
                       >
                         <Shield className="h-3 w-3 mr-1" />
-                        {role.replace('_', ' ')}
+                        {profile.role.replace('_', ' ')}
                       </Badge>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -217,16 +204,6 @@ export default function UserProfilePage() {
 
                 <div className="flex items-center gap-3 text-sm">
                   <div className="p-2 rounded-lg bg-muted">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Phone</p>
-                    <p>{profile.phone || 'Not provided'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="p-2 rounded-lg bg-muted">
                     <School className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div>
@@ -235,41 +212,26 @@ export default function UserProfilePage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="p-2 rounded-lg bg-muted">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Member Since</p>
-                    <p>{formatDate(profile.createdAt)}</p>
-                  </div>
-                </div>
+
               </div>
 
               {/* Club Memberships */}
-              {profile.clubMemberships && profile.clubMemberships.length > 0 && (
+              {profile.joinedClub && profile.joinedClub.length > 0 && (
                 <div className="pt-4 border-t border-border">
                   <h3 className="font-semibold flex items-center gap-2 mb-4">
                     <Users className="h-4 w-4" />
-                    Club Memberships
+                    Joined Clubs
                   </h3>
                   <div className="space-y-3">
-                    {profile.clubMemberships.map((membership) => (
-                      <Link
-                        key={membership.clubSlug}
-                        to={`/clubs/${membership.clubSlug}`}
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    {profile.joinedClub.map((clubName) => (
+                      <div
+                        key={clubName}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 transition-colors"
                       >
                         <div>
-                          <p className="font-medium">{membership.clubName}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Joined {formatDate(membership.joinedAt)}
-                          </p>
+                          <p className="font-medium">{clubName}</p>
                         </div>
-                        <Badge variant="outline">
-                          {membership.role === 'LEADER' ? 'Leader' : 'Member'}
-                        </Badge>
-                      </Link>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -282,14 +244,14 @@ export default function UserProfilePage() {
                   <Badge
                     variant="outline"
                     className={
-                      profile.accountStatus === 'ACTIVE'
+                      profile.status === 'ACTIVE'
                         ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                        : profile.accountStatus === 'SUSPENDED'
+                        : profile.status === 'SUSPENDED'
                         ? 'bg-red-500/10 text-red-500 border-red-500/20'
                         : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
                     }
                   >
-                    {profile.accountStatus.replace('_', ' ')}
+                    {(profile.status ?? 'UNKNOWN').replace('_', ' ')}
                   </Badge>
                 </div>
               </div>

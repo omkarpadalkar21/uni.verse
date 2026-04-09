@@ -5,6 +5,9 @@ import com.omkar.uni.verse.domain.dto.clubs.ClubMembersDTO;
 import com.omkar.uni.verse.domain.dto.clubs.ClubRejectionRequest;
 import com.omkar.uni.verse.domain.dto.clubs.management.ClubManagementResponse;
 import com.omkar.uni.verse.domain.dto.clubs.management.JoinClubRequest;
+import com.omkar.uni.verse.domain.dto.clubs.management.ClubJoinRequestDTO;
+import com.omkar.uni.verse.domain.dto.clubs.ClubSummary;
+import com.omkar.uni.verse.domain.dto.user.UserBasicDTO;
 import com.omkar.uni.verse.domain.entities.clubs.*;
 import com.omkar.uni.verse.domain.entities.user.RoleName;
 import com.omkar.uni.verse.domain.entities.user.User;
@@ -45,7 +48,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(cacheNames = "clubJoinRequests", allEntries = true)
+//    @CacheEvict(cacheNames = "clubJoinRequests", allEntries = true)
     public MessageResponse createClubJoinRequest(String slug, JoinClubRequest joinRequest) {
 
         Club club = clubRepository.findBySlugAndClubStatus(slug, ClubStatus.ACTIVE)
@@ -80,11 +83,11 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class, readOnly = true)
-    @Cacheable(
-            cacheNames = "clubJoinRequests",
-            key = "'slug=' + #slug + ',page=' + #offset + ',size=' + #pageSize + ',status=' + #status"
-    )
-    public Page<ClubJoinRequest> getAllClubJoinRequests(String slug, JoinRequestStatus status, int offset, int pageSize) {
+//    @Cacheable(
+//            cacheNames = "clubJoinRequests",
+//            key = "'slug=' + #slug + ',page=' + #offset + ',size=' + #pageSize + ',status=' + #status"
+//    )
+    public Page<ClubJoinRequestDTO> getAllClubJoinRequests(String slug, JoinRequestStatus status, int offset, int pageSize) {
         Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
 
@@ -101,15 +104,17 @@ public class ClubManagementServiceImpl implements ClubManagementService {
         PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(
                 offset, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        return clubJoinRequestRepository.findClubJoinRequestByClubAndStatus(
+        Page<ClubJoinRequest> requests = clubJoinRequestRepository.findClubJoinRequestByClubAndStatus(
                 club, status == null ? JoinRequestStatus.PENDING : status, pageRequest
         );
+
+        return requests.map(this::mapToJoinRequestDTO);
     }
 
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(cacheNames = {"clubJoinRequests", "clubMembers"}, allEntries = true)
+//    @CacheEvict(cacheNames = {"clubJoinRequests", "clubMembers"}, allEntries = true)
     public ClubManagementResponse approveClubJoinRequest(String slug, UUID id) {
         Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
@@ -158,7 +163,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(cacheNames = "clubJoinRequests", allEntries = true)
+//    @CacheEvict(cacheNames = "clubJoinRequests", allEntries = true)
     public ClubManagementResponse rejectClubJoinRequest(String slug, UUID userId, ClubRejectionRequest rejectionRequest) {
         Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
@@ -195,10 +200,10 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_CLUB_LEADER','ROLE_CLUB_MEMBER')")
     @Transactional(rollbackFor = Exception.class, readOnly = true)
-    @Cacheable(
-            cacheNames = "clubMembers",
-            key = "'slug=' + #slug + ',page=' + #offset + ',size=' + #pageSize"
-    )
+//    @Cacheable(
+//            cacheNames = "clubMembers",
+//            key = "'slug=' + #slug + ',page=' + #offset + ',size=' + #pageSize"
+//    )
     public Page<ClubMembersDTO> getAllClubMembers(String slug, int offset, int pageSize) {
         Club club = clubRepository.findBySlugWithLeaders(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Club not found"));
@@ -254,7 +259,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(cacheNames = "clubMembers", allEntries = true)
+//    @CacheEvict(cacheNames = "clubMembers", allEntries = true)
     public ClubManagementResponse promoteClubMember(String slug, UUID id) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -299,7 +304,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(cacheNames = "clubMembers", allEntries = true)
+//    @CacheEvict(cacheNames = "clubMembers", allEntries = true)
     public ClubManagementResponse removeClubMember(String slug, UUID id) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -331,7 +336,7 @@ public class ClubManagementServiceImpl implements ClubManagementService {
     @Override
     @PreAuthorize("hasAuthority('ROLE_CLUB_MEMBER')")
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(cacheNames = "clubMembers", allEntries = true)
+//    @CacheEvict(cacheNames = "clubMembers", allEntries = true)
     public ClubManagementResponse leaveClub(String slug) {
         User currentUser = (User) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -366,5 +371,40 @@ public class ClubManagementServiceImpl implements ClubManagementService {
 
         // Atomically decrement member count to avoid race conditions
         clubRepository.decrementMemberCount(club.getId());
+    }
+
+    private ClubJoinRequestDTO mapToJoinRequestDTO(ClubJoinRequest request) {
+        return ClubJoinRequestDTO.builder()
+                .id(request.getId())
+                .user(mapUserToBasicDTO(request.getUser()))
+                .club(ClubSummary.builder()
+                        .id(request.getClub().getId())
+                        .name(request.getClub().getName())
+                        .slug(request.getClub().getSlug())
+                        .logoUrl(request.getClub().getLogoUrl())
+                        .build())
+                .status(request.getStatus())
+                .message(request.getMessage())
+                .rejectionReason(request.getRejectionReason())
+                .reviewedBy(request.getReviewedBy() != null ? mapUserToBasicDTO(request.getReviewedBy()) : null)
+                .reviewedAt(request.getReviewedAt())
+                .createdAt(request.getCreatedAt())
+                .build();
+    }
+
+    private UserBasicDTO mapUserToBasicDTO(User user) {
+        if (user == null) return null;
+        return UserBasicDTO.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .universityId(user.getUniversityId())
+                .phone(user.getPhone())
+                .accountStatus(user.getAccountStatus())
+                .roles(java.util.Collections.singletonList(user.getRole().name()))
+                .createdAt(user.getCreatedAt())
+                .lastLogin(user.getLastLoginAt())
+                .build();
     }
 }

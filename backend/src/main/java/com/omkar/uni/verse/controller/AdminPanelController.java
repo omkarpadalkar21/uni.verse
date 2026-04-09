@@ -17,7 +17,6 @@ import com.omkar.uni.verse.domain.entities.user.RoleName;
 import com.omkar.uni.verse.services.AdminPanelService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,12 +34,9 @@ public class AdminPanelController {
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
-        Page<ClubDTO> page = adminPanelService.getClubs(status, offset, pageSize);
+        PageResponse<ClubDTO> pageResponse = adminPanelService.getClubs(status, offset, pageSize);
 
-        return ResponseEntity.ok().body(new PageResponse<>(
-                page.getContent(),
-                page.getTotalPages()
-        ));
+        return ResponseEntity.ok().body(pageResponse);
     }
 
     @GetMapping("/users")
@@ -50,12 +46,9 @@ public class AdminPanelController {
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
-        Page<UserBasicDTO> page = adminPanelService.getUsers(accountStatus, roleName, offset, pageSize);
+        PageResponse<UserBasicDTO> pageResponse = adminPanelService.getUsers(accountStatus, roleName, offset, pageSize);
 
-        return ResponseEntity.ok().body(new PageResponse<>(
-                page.getContent(),
-                page.getTotalPages()
-        ));
+        return ResponseEntity.ok().body(pageResponse);
     }
 
     @PutMapping("/users/{id}/promote-faculty")
@@ -85,13 +78,8 @@ public class AdminPanelController {
             @RequestParam(defaultValue = "0") int offset,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
-        Page<OrganizerVerificationResponse> page = adminPanelService.getOrganizerVerificationRequests(status, offset, pageSize);
-        return ResponseEntity.ok().body(
-                new PageResponse<>(
-                        page.getContent(),
-                        page.getTotalPages()
-                )
-        );
+        PageResponse<OrganizerVerificationResponse> pageResponse = adminPanelService.getOrganizerVerificationRequests(status, offset, pageSize);
+        return ResponseEntity.ok().body(pageResponse);
     }
 
     @GetMapping("organization-verification/{id}")

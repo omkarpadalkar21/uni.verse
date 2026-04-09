@@ -280,6 +280,11 @@ public class EventRegistrationServiceImpl implements EventRegistrationService {
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .universityId(user.getUniversityId())
+                .phone(user.getPhone())
+                .accountStatus(user.getAccountStatus())
+                .roles(java.util.Collections.singletonList(user.getRole().name()))
+                .createdAt(user.getCreatedAt())
+                .lastLogin(user.getLastLoginAt())
                 .build();
     }
 }

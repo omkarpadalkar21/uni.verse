@@ -120,11 +120,11 @@ export function ClubMembersList({ slug }: ClubMembersListProps) {
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
                     <AvatarFallback>
-                      {member.user.split(" ").map((n) => n[0]).join("").substring(0, 2)}
+                      {(member.user || "Unknown User").split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{member.user}</p>
+                    <p className="font-medium">{member.user || "Unknown User"}</p>
                     <p className="text-xs text-muted-foreground">
                       Joined {formatDate(member.joinedAt)}
                     </p>

@@ -30,7 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { clubApi } from "@/lib/api";
+import { adminApi, clubApi } from "@/lib/api";
 import type { ClubDTO, ClubStatus } from "@/types/club";
 import { CLUB_CATEGORY_LABELS } from "@/constants/clubCategories";
 
@@ -47,13 +47,17 @@ export default function AdminClubsPage() {
 
   useEffect(() => {
     fetchClubs();
-  }, [currentPage]);
+  }, [currentPage, statusFilter]);
 
   const fetchClubs = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await clubApi.getClubs(currentPage, pageSize);
+      const response = await adminApi.getClubs({
+        status: statusFilter === "ALL" ? undefined : statusFilter,
+        offset: currentPage,
+        pageSize,
+      });
       setClubs(response.content);
       setTotalPages(response.totalPages);
     } catch (err) {

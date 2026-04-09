@@ -204,8 +204,10 @@ public class AuthenticationService {
                 userToBeVerified.getId().toString()
         );
 
+        log.info("Document url:{} ", documentUrl);
         // Update verification with document details
         verification.setDocumentUrl(documentUrl);
+        log.info("Document type:{} ", request.getVerificationDocument().getContentType());
         verification.setDocumentType(request.getVerificationDocument().getContentType());
         organizerVerificationRepository.save(verification);
 
@@ -343,7 +345,7 @@ public class AuthenticationService {
                 user.getEmail(),
                 "Organizer Verification from UniVerse",
                 plainTextToken,
-                EmailTemplateName.VERIFY_ORGANIZER
+                EmailTemplateName.VERIFY_ACCOUNT
         );
 
         log.info("Organizer verification email sent successfully to {}", user.getEmail());

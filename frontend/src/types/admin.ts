@@ -49,6 +49,7 @@ export interface OrganizerVerificationResponse {
   userId: string;
   userEmail: string;
   documentUrl: string;
+  verificationDocumentUrl?: string;
   status: VerificationStatus;
   submittedAt: string;
   reviewedAt?: string;

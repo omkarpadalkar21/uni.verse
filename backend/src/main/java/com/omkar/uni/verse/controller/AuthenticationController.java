@@ -88,7 +88,9 @@ public class AuthenticationController {
     ) {
         log.info("Email verification request received for: {}", verifyEmailRequest.getEmail());
 
-        AuthenticationResponse response = authenticationService.verifyEmail(verifyEmailRequest, httpServletRequest.getRemoteAddr(), httpServletRequest.getHeader("User-Agent"));
+        AuthenticationResponse response = authenticationService.verifyEmail(
+                verifyEmailRequest, httpServletRequest.getRemoteAddr(), httpServletRequest.getHeader("User-Agent")
+        );
 
         return ResponseEntity.ok(response);
     }

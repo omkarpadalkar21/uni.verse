@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ChevronLeft,
@@ -8,6 +8,7 @@ import {
   Search,
   Download,
   RefreshCw,
+  ArrowLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -157,6 +158,14 @@ export function EventRegistrationsList({
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
+              {eventId && (
+                <Link to={`/events/${eventId}`}>
+                  <Button variant="ghost" size="sm" className="mb-2 -ml-2">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Event
+                  </Button>
+                </Link>
+              )}
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 <Users className="h-6 w-6" />
                 Event Registrations

@@ -3,6 +3,7 @@ package com.omkar.uni.verse.services.impl;
 import com.omkar.uni.verse.domain.dto.MessageResponse;
 import com.omkar.uni.verse.domain.dto.admin.OrganizerRejectionReason;
 import com.omkar.uni.verse.domain.dto.admin.OrganizerVerificationResponse;
+import com.omkar.uni.verse.domain.dto.PageResponse;
 import com.omkar.uni.verse.domain.dto.admin.PlatformStatsDTO;
 import com.omkar.uni.verse.domain.dto.admin.UserSuspensionReason;
 import com.omkar.uni.verse.domain.dto.clubs.ClubDTO;
@@ -62,8 +63,8 @@ public class AdminPanelServiceImpl implements AdminPanelService {
 
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
-    @Cacheable(cacheNames = "adminClubs", key = "'status=' + #status + ',page=' + #offset + 'size=' + #pageSize")
-    public Page<ClubDTO> getClubs(ClubStatus status, int offset, int pageSize) {
+//    @Cacheable(cacheNames = "adminClubs", key = "'status=' + #status + ',page=' + #offset + 'size=' + #pageSize")
+    public PageResponse<ClubDTO> getClubs(ClubStatus status, int offset, int pageSize) {
         log.debug("Fetching clubs with status: {}, offset: {}, pageSize: {}", status, offset, pageSize);
 
         PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(offset, pageSize);
@@ -82,16 +83,16 @@ public class AdminPanelServiceImpl implements AdminPanelService {
                     clubs.getNumberOfElements(), status, offset + 1, clubs.getTotalPages());
         }
 
-        return clubs;
+        return new PageResponse<>(clubs.getContent(), clubs.getTotalPages());
     }
 
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
-    @Cacheable(
-            cacheNames = "adminUsers",
-            key = "'status=' + #accountStatus + ',page=' + #offset + ',size=' + #pageSize + ',roleName=' + #roleName"
-    )
-    public Page<UserBasicDTO> getUsers(AccountStatus accountStatus, RoleName roleName, int offset, int pageSize) {
+//    @Cacheable(
+//            cacheNames = "adminUsers",
+//            key = "'status=' + #accountStatus + ',page=' + #offset + ',size=' + #pageSize + ',roleName=' + #roleName"
+//    )
+    public PageResponse<UserBasicDTO> getUsers(AccountStatus accountStatus, RoleName roleName, int offset, int pageSize) {
         log.debug("Fetching users with accountStatus: {}, role: {}, offset: {}, pageSize: {}",
                 accountStatus, roleName, offset, pageSize);
 
@@ -129,13 +130,13 @@ public class AdminPanelServiceImpl implements AdminPanelService {
                     users.getNumberOfElements(), offset + 1, users.getTotalPages());
         }
 
-        return users;
+        return new PageResponse<>(users.getContent(), users.getTotalPages());
     }
 
     @Override
     @PreAuthorize("hasAuthority('ROLE_SUPERADMIN')")
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(cacheNames = "adminUsers", allEntries = true)
+//    @CacheEvict(cacheNames = "adminUsers", allEntries = true)
     public UserProfileResponse promoteToFaculty(UUID userId) {
 
         if (userId == null) {
@@ -182,7 +183,7 @@ public class AdminPanelServiceImpl implements AdminPanelService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(cacheNames = "adminUsers", allEntries = true)
+//    @CacheEvict(cacheNames = "adminUsers", allEntries = true)
     public UserProfileResponse suspendUser(UUID userId, UserSuspensionReason suspensionReason) {
         if (userId == null) {
             log.error("Suspension failed: userId is null");
@@ -278,10 +279,16 @@ public class AdminPanelServiceImpl implements AdminPanelService {
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(cacheNames = "organizerVerificationRequests", allEntries = true)
+//    @CacheEvict(cacheNames = "organizerVerificationRequests", allEntries = true)
     public MessageResponse approveOrganizer(UUID id) {
         OrganizerVerification verification = organizerVerificationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Organization Verification request not found"));
+
+        // Idempotency guard — prevent re-approving
+        if (verification.getStatus() == VerificationStatus.APPROVED) {
+            log.warn("Organizer verification {} is already approved", id);
+            throw new IllegalStateException("Organizer verification is already approved");
+        }
 
         verification.setStatus(VerificationStatus.APPROVED);
         verification.setReviewedBy(getCurrentUser());
@@ -289,18 +296,23 @@ public class AdminPanelServiceImpl implements AdminPanelService {
         organizerVerificationRepository.save(verification);
 
         User userToBeVerified = verification.getUser();
-        userToBeVerified.setAccountStatus(AccountStatus.ACTIVE);
-        userRepository.save(userToBeVerified);
 
+        // Guard: user may already have been promoted (e.g. manual fix)
+        if (userToBeVerified.getRole() != RoleName.CLUB_LEADER) {
+            userToBeVerified.setAccountStatus(AccountStatus.ACTIVE);
+            userToBeVerified.setRole(RoleName.CLUB_LEADER);
+            userRepository.save(userToBeVerified);
+        }
 
-        log.info("Successfully verified Organizer: {}", verification.getUser().getEmail());
-        return new MessageResponse("Organizer successfully verified");
+        log.info("Successfully verified Organizer: {}. They should now sign in and register their club at /clubs/register.",
+                verification.getUser().getEmail());
+        return new MessageResponse("Organizer successfully verified. They can now sign in and register their club.");
     }
 
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(cacheNames = "organizerVerificationRequests", allEntries = true)
+//    @CacheEvict(cacheNames = "organizerVerificationRequests", allEntries = true)
     public MessageResponse rejectOrganizer(UUID id, OrganizerRejectionReason rejectionReason) {
         OrganizerVerification verification = organizerVerificationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Organization Verification request not found"));
@@ -321,11 +333,11 @@ public class AdminPanelServiceImpl implements AdminPanelService {
 
     @Override
     @PreAuthorize("hasAnyAuthority('ROLE_SUPERADMIN','ROLE_FACULTY')")
-    @Cacheable(
-            cacheNames = "organizerVerificationRequests",
-            key = "'status=' + #status + ',page=' + #offset + ',size=' + #pageSize"
-    )
-    public Page<OrganizerVerificationResponse> getOrganizerVerificationRequests(
+//    @Cacheable(
+//            cacheNames = "organizerVerificationRequests",
+//            key = "'status=' + #status + ',page=' + #offset + ',size=' + #pageSize"
+//    )
+    public PageResponse<OrganizerVerificationResponse> getOrganizerVerificationRequests(
             VerificationStatus status, int offset, int pageSize
     ) {
         PageRequest pageRequest = PaginationValidator.createValidatedPageRequest(
@@ -334,7 +346,8 @@ public class AdminPanelServiceImpl implements AdminPanelService {
                 Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
-        return organizerVerificationRepository.getAllByStatus(status == null ? VerificationStatus.PENDING : status, pageRequest).map(organizerVerificationMapper::toOrganizerVerificationResponse);
+        Page<OrganizerVerificationResponse> page = organizerVerificationRepository.getAllByStatus(status == null ? VerificationStatus.PENDING : status, pageRequest).map(organizerVerificationMapper::toOrganizerVerificationResponse);
+        return new PageResponse<>(page.getContent(), page.getTotalPages());
     }
 
     @Override

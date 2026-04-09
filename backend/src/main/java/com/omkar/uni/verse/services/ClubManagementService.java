@@ -11,11 +11,13 @@ import org.springframework.data.domain.Page;
 
 import java.util.UUID;
 
+import com.omkar.uni.verse.domain.dto.clubs.management.ClubJoinRequestDTO;
+
 public interface ClubManagementService {
 
     MessageResponse createClubJoinRequest(String slug, JoinClubRequest joinRequest);
 
-    Page<ClubJoinRequest> getAllClubJoinRequests(String slug, JoinRequestStatus status, int offset, int pageSize);
+    Page<ClubJoinRequestDTO> getAllClubJoinRequests(String slug, JoinRequestStatus status, int offset, int pageSize);
 
     ClubManagementResponse approveClubJoinRequest(String slug, UUID id);
 

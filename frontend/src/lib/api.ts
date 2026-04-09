@@ -80,6 +80,10 @@ export interface VerifyEmailRequest {
   otp: string;
 }
 
+export interface ResendVerificationRequest {
+  email: string;
+}
+
 export interface AuthenticationResponse {
   access_token: string;
   refresh_token: string;
@@ -130,6 +134,11 @@ export const authApi = {
     return response.data;
   },
 
+  resendVerification: async (data: ResendVerificationRequest): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/api/v1/auth/resend-verification', data);
+    return response.data;
+  },
+
   forgotPassword: async (data: ForgotPasswordRequest): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>('/api/v1/auth/forgot-password', data);
     return response.data;
@@ -143,6 +152,15 @@ export const authApi = {
   logout: async (data: LogoutRequest): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>('/api/v1/auth/logout', data);
     clearTokens();
+    return response.data;
+  },
+
+  uploadOrganizerProof: async (data: FormData): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/api/v1/auth/upload-organizer-proof', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 };
@@ -180,7 +198,6 @@ import type {
   EventCategory,
 } from '@/types/event';
 import type { VenueSummary, CreateVenueRequest, EventSeatResponse } from '@/types/venue';
-import type { LockResult, BookingSeatDTO } from '@/types/booking';
 
 // ============ Club API ============
 export const clubApi = {
@@ -200,6 +217,28 @@ export const clubApi = {
   registerClub: async (data: ClubRegistrationRequest): Promise<ClubResponse> => {
     const response = await apiClient.post<ClubResponse>('/api/v1/clubs', data);
     return response.data;
+  },
+
+  /** Check whether the current CLUB_LEADER has already created a club */
+  hasMyClub: async (): Promise<boolean> => {
+    const response = await apiClient.get<{ hasClub: boolean }>('/api/v1/clubs/my-club');
+    return response.data.hasClub;
+  },
+
+  /** Get the club managed by the current CLUB_LEADER (returns first page, expects one result) */
+  getMyLeadClub: async (): Promise<ClubDTO | null> => {
+    try {
+      const response = await apiClient.get<{ hasClub: boolean; slug?: string }>('/api/v1/clubs/my-club');
+      if (!response.data.hasClub) return null;
+      // If the backend returns a slug field, use it directly
+      if (response.data.slug) {
+        const club = await apiClient.get<ClubDTO>(`/api/v1/clubs/${response.data.slug}`);
+        return club.data;
+      }
+      return null;
+    } catch {
+      return null;
+    }
   },
 
   /** Update club by slug */
@@ -236,8 +275,8 @@ export const clubManagementApi = {
   },
 
   /** Get all join requests for a club (leaders only) */
-  getJoinRequests: async (slug: string, page: number = 0, size: number = 20): Promise<Page<ClubJoinRequest>> => {
-    const response = await apiClient.get<Page<ClubJoinRequest>>(
+  getJoinRequests: async (slug: string, page: number = 0, size: number = 20): Promise<PageResponse<ClubJoinRequest>> => {
+    const response = await apiClient.get<PageResponse<ClubJoinRequest>>(
       `/api/v1/clubs/${slug}/join-requests`,
       { params: { page, size } }
     );
@@ -266,8 +305,8 @@ export const clubManagementApi = {
   },
 
   /** Get all members of a club */
-  getMembers: async (slug: string, page: number = 0, size: number = 20): Promise<Page<ClubMembersDTO>> => {
-    const response = await apiClient.get<Page<ClubMembersDTO>>(
+  getMembers: async (slug: string, page: number = 0, size: number = 20): Promise<PageResponse<ClubMembersDTO>> => {
+    const response = await apiClient.get<PageResponse<ClubMembersDTO>>(
       `/api/v1/clubs/${slug}/members`,
       { params: { page, size } }
     );
@@ -461,26 +500,37 @@ export const venueApi = {
     const response = await apiClient.post<VenueSummary>('/api/venues', data);
     return response.data;
   },
+
+  getVenueById: async (id: string): Promise<VenueSummary & { layout?: { sections: import('@/types/venue').SectionLayout[] } }> => {
+    const response = await apiClient.get(`/api/venues/${id}`);
+    return response.data;
+  },
+
+  updateVenue: async (id: string, data: CreateVenueRequest): Promise<VenueSummary> => {
+    const response = await apiClient.put<VenueSummary>(`/api/venues/${id}`, data);
+    return response.data;
+  },
 };
 
 // ============ Booking API ============
+import type { LockSeatsRequest, LockSeatsResponse, BookingSeatDTO } from '@/types/booking';
+
 export const bookingApi = {
+  // GET /api/events/{eventId}/seats
   getEventSeats: async (eventId: string): Promise<EventSeatResponse> => {
     const response = await apiClient.get<EventSeatResponse>(`/api/events/${eventId}/seats`);
     return response.data;
   },
 
-  lockSeat: async (seatId: number): Promise<LockResult> => {
-    const response = await apiClient.post<LockResult>(`/api/booking/${seatId}/lock`);
+  // POST /api/bookings/lock  — body: { eventId, seatIds[] }
+  lockSeats: async (data: LockSeatsRequest): Promise<LockSeatsResponse> => {
+    const response = await apiClient.post<LockSeatsResponse>('/api/bookings/lock', data);
     return response.data;
   },
 
-  releaseLockSeat: async (seatId: number): Promise<void> => {
-    await apiClient.post(`/api/booking/${seatId}/lock/release`);
-  },
-
-  confirmSeatBooking: async (seatId: number): Promise<BookingSeatDTO> => {
-    const response = await apiClient.post<BookingSeatDTO>(`/api/booking/${seatId}/confirm`);
+  // POST /api/bookings/{bookingId}/confirm
+  confirmBooking: async (bookingId: string): Promise<BookingSeatDTO> => {
+    const response = await apiClient.post<BookingSeatDTO>(`/api/bookings/${bookingId}/confirm`);
     return response.data;
   },
 };

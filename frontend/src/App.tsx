@@ -14,6 +14,7 @@ import ClubsPage from './pages/clubs/ClubsPage';
 import ClubDetailPage from './pages/clubs/ClubDetailPage';
 import RegisterClubPage from './pages/clubs/RegisterClubPage';
 import ClubDashboard from './pages/clubs/ClubDashboard';
+import MyClubDashboardPage from './pages/clubs/MyClubDashboardPage';
 
 // Admin pages
 import AdminClubsPage from './pages/admin/AdminClubsPage';
@@ -22,6 +23,7 @@ import AdminUsersPage from './pages/admin/AdminUsersPage';
 import OrganizerVerificationPage from './pages/admin/OrganizerVerificationPage';
 import AdminVenuesPage from './pages/admin/AdminVenuesPage';
 import CreateVenuePage from './pages/admin/CreateVenuePage';
+import EditVenuePage from './pages/admin/EditVenuePage';
 
 // Event pages
 import CreateEventPage from './pages/events/CreateEventPage';
@@ -33,8 +35,14 @@ import UserRegistrationsPage from './pages/UserRegistrationsPage';
 import UserProfilePage from './pages/profile/UserProfilePage';
 import EditProfilePage from './pages/profile/EditProfilePage';
 
+// Misc pages
+import NotFoundPage from './pages/NotFoundPage';
+
 // Event registration management
 import { EventRegistrationsList } from './components/events/EventRegistrationsList';
+
+// Route protection
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -56,29 +64,43 @@ function App() {
 
           {/* Club routes */}
           <Route path="/clubs" element={<ClubsPage />} />
-          <Route path="/clubs/register" element={<RegisterClubPage />} />
+          <Route path="/clubs/register" element={<ProtectedRoute requireClubLeader><RegisterClubPage /></ProtectedRoute>} />
           <Route path="/clubs/:slug" element={<ClubDetailPage />} />
 
           {/* Club dashboard (protected - for club leaders) */}
           <Route path="/dashboard/club/:slug" element={<ClubDashboard />} />
 
-          {/* Event management routes (protected - for club leaders) */}
-          <Route path="/clubs/:slug/events/create" element={<CreateEventPage />} />
-          <Route path="/clubs/:slug/events/:eventId/registrations" element={<EventRegistrationsList />} />
+          {/* My Club portal — for club leaders and members */}
+          <Route
+            path="/my-club"
+            element={
+              <ProtectedRoute>
+                <MyClubDashboardPage />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* User routes (protected) */}
-          <Route path="/my-registrations" element={<UserRegistrationsPage />} />
-          <Route path="/profile" element={<UserProfilePage />} />
-          <Route path="/profile/edit" element={<EditProfilePage />} />
+          {/* Event management routes (protected - for club leaders) */}
+          <Route path="/clubs/:slug/events/create" element={<ProtectedRoute requireClubLeader><CreateEventPage /></ProtectedRoute>} />
+          <Route path="/clubs/:slug/events/:eventId/registrations" element={<ProtectedRoute requireClubLeader><EventRegistrationsList /></ProtectedRoute>} />
+
+          {/* User routes (protected - any authenticated user) */}
+          <Route path="/my-registrations" element={<ProtectedRoute><UserRegistrationsPage /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+          <Route path="/profile/edit" element={<ProtectedRoute><EditProfilePage /></ProtectedRoute>} />
           <Route path="/users/:emailId" element={<UserProfilePage />} />
 
-          {/* Admin routes (protected - for faculty/superadmin) */}
-          <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="/admin/clubs" element={<AdminClubsPage />} />
-          <Route path="/admin/users" element={<AdminUsersPage />} />
-          <Route path="/admin/organizer-verification" element={<OrganizerVerificationPage />} />
-          <Route path="/admin/venues" element={<AdminVenuesPage />} />
-          <Route path="/admin/venues/create" element={<CreateVenuePage />} />
+          {/* Admin routes (protected - SUPERADMIN only) */}
+          <Route path="/admin" element={<ProtectedRoute requireSuperAdmin><AdminDashboardPage /></ProtectedRoute>} />
+          <Route path="/admin/clubs" element={<ProtectedRoute requireSuperAdmin><AdminClubsPage /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsersPage /></ProtectedRoute>} />
+          <Route path="/admin/organizer-verification" element={<ProtectedRoute requireSuperAdmin><OrganizerVerificationPage /></ProtectedRoute>} />
+          <Route path="/admin/venues" element={<ProtectedRoute requireSuperAdmin><AdminVenuesPage /></ProtectedRoute>} />
+          <Route path="/admin/venues/create" element={<ProtectedRoute requireSuperAdmin><CreateVenuePage /></ProtectedRoute>} />
+          <Route path="/admin/venues/:id/edit" element={<ProtectedRoute requireSuperAdmin><EditVenuePage /></ProtectedRoute>} />
+
+          {/* 404 catch-all */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

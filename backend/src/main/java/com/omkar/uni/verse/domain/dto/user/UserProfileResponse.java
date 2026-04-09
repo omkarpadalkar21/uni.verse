@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
@@ -13,12 +14,15 @@ import java.util.UUID;
 @Getter
 @Builder
 public class UserProfileResponse {
-    //    id, name, email, role, universityId, joinedClubs[]
     private UUID id;
     private String firstName;
     private String lastName;
+    private String email;
+    private String phone;
+    private String universityId;
     private RoleName role;
     private AccountStatus status;
-    private String universityId;
+    private LocalDateTime createdAt;
+    private LocalDateTime lastLoginAt;
     private Set<String> joinedClub;
 }

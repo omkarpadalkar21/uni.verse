@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 
 @Service
 @RequiredArgsConstructor
@@ -53,7 +54,13 @@ public class ClubServiceImpl implements ClubService {
         log.debug("Club registration initiated by user: {} (ID: {})",
                 currentUser.getEmail(), currentUser.getId());
 
-        // Check if club slug already exists (optional but recommended validation)
+        // Prevent a club leader from registering more than one club
+        if (clubRepository.existsByCreatedBy(currentUser)) {
+            log.warn("Club registration denied: user {} has already created a club", currentUser.getEmail());
+            throw new IllegalStateException("You have already registered a club. Each organizer may only create one club.");
+        }
+
+        // Check if club slug already exists
         if (clubRepository.existsBySlug(registrationRequest.getSlug())) {
             log.warn("Club registration failed: slug '{}' already exists", registrationRequest.getSlug());
             throw new IllegalArgumentException("Club with slug " + registrationRequest.getSlug() + " already exists");
@@ -69,20 +76,37 @@ public class ClubServiceImpl implements ClubService {
         club.setFollowerCount(0);
         club.setEventCount(0);
         club.setTags(new String[0]); // Initialize empty tags
+
+        // Defensively initialize the leaders collection in case the mapper left it null
+        if (club.getLeaders() == null) {
+            club.setLeaders(new HashSet<>());
+        }
+
+        // Register the creator as the first leader with their chosen role
         club.getLeaders().add(
                 ClubLeader.builder()
                         .club(club)
                         .user(currentUser)
-                        .role(registrationRequest.getRole()) // TODO: Verify the requested role when validating the verification document
+                        .role(registrationRequest.getRole())
                         .appointedAt(LocalDateTime.now())
                         .build()
         );
 
         Club savedClub = clubRepository.save(club);
-        log.info("Successfully registered new club: '{}' (slug: {}, ID: {}) by user: {}",
+        log.info("Successfully registered new club: '{}' (slug: {}, ID: {}) by user: {}. Status: PENDING admin approval.",
                 savedClub.getName(), savedClub.getSlug(), savedClub.getId(), currentUser.getEmail());
 
         return clubMapper.toRegistrationResponse(savedClub);
+    }
+
+    @Override
+    @PreAuthorize("hasAuthority('ROLE_CLUB_LEADER')")
+    public boolean hasMyClub() {
+        User currentUser = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+        return clubRepository.existsByCreatedBy(currentUser);
     }
 
     @Override

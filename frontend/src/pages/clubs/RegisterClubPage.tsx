@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, AlertCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { clubApi, isAuthenticated } from "@/lib/api";
-import type { ClubRegistrationRequest, LeadershipRole } from "@/types/club";
+import { clubApi } from "@/lib/api";
+import type { ClubRegistrationRequest, LeadershipRole, ClubResponse } from "@/types/club";
 import { CLUB_CATEGORIES, CLUB_CATEGORY_LABELS } from "@/constants/clubCategories";
 
 const LEADERSHIP_ROLES: { value: LeadershipRole; label: string }[] = [
@@ -26,9 +26,10 @@ const LEADERSHIP_ROLES: { value: LeadershipRole; label: string }[] = [
 ];
 
 export default function RegisterClubPage() {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<ClubResponse | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<ClubRegistrationRequest>({
@@ -111,8 +112,14 @@ export default function RegisterClubPage() {
 
     setIsLoading(true);
     try {
-      await clubApi.registerClub(formData);
-      setSuccess(true);
+      const response = await clubApi.registerClub(formData);
+      setSuccess(response);
+      // Navigate to the new club's dashboard (or clubs list as fallback)
+      if (response.slug) {
+        navigate(`/dashboard/club/${response.slug}`);
+      } else {
+        navigate('/clubs');
+      }
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
         const error = err as { response?: { data?: { message?: string } } };
@@ -125,24 +132,6 @@ export default function RegisterClubPage() {
     }
   };
 
-  // Redirect if not authenticated
-  if (!isAuthenticated()) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md w-full mx-4">
-          <CardContent className="pt-6 text-center">
-            <h2 className="text-xl font-semibold mb-4">Sign In Required</h2>
-            <p className="text-muted-foreground mb-6">
-              You need to sign in to register a club.
-            </p>
-            <Button asChild>
-              <Link to="/auth/signin">Sign In</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   // Success state
   if (success) {
@@ -159,15 +148,18 @@ export default function RegisterClubPage() {
                 <Check className="h-8 w-8 text-green-500" />
               </div>
               <h2 className="text-2xl font-bold mb-2">Club Submitted!</h2>
-              <p className="text-muted-foreground mb-6">
-                Your club registration has been submitted for review. You'll be notified once it's approved.
+              <p className="text-muted-foreground mb-1">
+                <span className="font-semibold text-foreground">{success.name}</span> has been submitted for review.
+              </p>
+              <p className="text-muted-foreground mb-6 text-sm">
+                You'll be notified once it's approved by an admin.
               </p>
               <div className="flex gap-4 justify-center">
-                <Button variant="outline" asChild>
-                  <Link to="/clubs">Browse Clubs</Link>
+                <Button variant="outline" onClick={() => navigate("/clubs")}>
+                  Browse Clubs
                 </Button>
-                <Button asChild>
-                  <Link to="/">Go Home</Link>
+                <Button onClick={() => navigate("/")}>
+                  Go Home
                 </Button>
               </div>
             </CardContent>

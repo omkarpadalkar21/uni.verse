@@ -3,7 +3,6 @@ package com.omkar.uni.verse.domain.entities.clubs;
 import com.omkar.uni.verse.domain.entities.user.User;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.validator.constraints.URL;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -36,7 +35,6 @@ public class OrganizerVerification {
     @Builder.Default
     private VerificationStatus status = VerificationStatus.PENDING;
 
-    @URL
     @Column(length = 500)
     private String documentUrl;
 

@@ -1,59 +1,58 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import {
+  Card, CardContent, CardDescription,
+  CardHeader, CardTitle, CardFooter,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { InteractiveSeatMap } from '@/components/venue/InteractiveSeatMap';
 import { bookingApi } from '@/lib/api';
 import type { Seat } from '@/types/venue';
-import { Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function EventSeatSelectionPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();     // eventId
   const navigate = useNavigate();
-  
+
   const [seats, setSeats] = useState<Seat[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
-  const [lockedSeatId, setLockedSeatId] = useState<number | null>(null);
+
+  // bookingId comes from the /bookings/lock response — used for confirm
+  const [bookingId, setBookingId] = useState<string | null>(null);
   const [lockExpiresAt, setLockExpiresAt] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Poll for seat updates every 10 seconds if we haven't locked a seat yet
+  // Poll seat availability every 10 s (only when no active hold)
   useEffect(() => {
-    if (!id || lockedSeatId) return;
-
+    if (!id || bookingId) return;
     fetchSeats();
-    const interval = setInterval(fetchSeats, 10000);
+    const interval = setInterval(fetchSeats, 10_000);
     return () => clearInterval(interval);
-  }, [id, lockedSeatId]);
+  }, [id, bookingId]);
 
-  // Lock timer countdown
+  // Countdown timer for the locked hold
   useEffect(() => {
     if (!lockExpiresAt || bookingConfirmed) return;
-
     const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = lockExpiresAt.getTime() - now;
-
-      if (distance < 0) {
+      const distance = lockExpiresAt.getTime() - Date.now();
+      if (distance <= 0) {
         clearInterval(interval);
         setTimeRemaining('EXPIRED');
-        setLockedSeatId(null);
+        setBookingId(null);
         setSelectedSeats([]);
         setError('Seat hold expired. Please select again.');
-        fetchSeats(); // Refresh available seats
+        fetchSeats();
         return;
       }
-
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
       setTimeRemaining(`${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
     }, 1000);
-
     return () => clearInterval(interval);
   }, [lockExpiresAt, bookingConfirmed]);
 
@@ -72,41 +71,32 @@ export default function EventSeatSelectionPage() {
   };
 
   const handleSeatSelect = (seat: Seat) => {
-    if (lockedSeatId) return; // Cannot select new seats while one is locked
-    
-    setSelectedSeats(prev => {
-      const isCurrentlySelected = prev.some(s => s.id === seat.id);
-      if (isCurrentlySelected) {
-        return prev.filter(s => s.id !== seat.id);
-      } else {
-        // Only allowing single seat selection based on current API endpoints
-        return [seat];
-      }
+    if (bookingId) return; // Can't change selection while hold is active
+    setSelectedSeats((prev) => {
+      const already = prev.some((s) => s.id === seat.id);
+      return already ? prev.filter((s) => s.id !== seat.id) : [seat]; // single-seat flow
     });
   };
 
+  // POST /api/bookings/lock  — passes eventId + seatIds[]
   const handleHoldSeat = async () => {
-    if (selectedSeats.length === 0) return;
+    if (selectedSeats.length === 0 || !id) return;
     setIsProcessing(true);
     setError(null);
-    
     try {
-      const seatToLock = selectedSeats[0];
-      const result = await bookingApi.lockSeat(seatToLock.id);
-      
-      if (result.success !== false) {
-        setLockedSeatId(seatToLock.id);
-        const expires = new Date(result.expiresAt);
-        setLockExpiresAt(expires);
-      } else {
-        setError(result.message || 'Seat couldn\'t be locked. It might have just been taken.');
-        setSelectedSeats([]);
-        await fetchSeats();
-      }
+      const result = await bookingApi.lockSeats({
+        eventId: id,
+        seatIds: [selectedSeats[0].id],
+      });
+      setBookingId(result.bookingId);
+      setLockExpiresAt(new Date(result.expiresAt));
+      await fetchSeats();
     } catch (err: any) {
       console.error('Lock seat error:', err);
-      // Backend returns 400 error string or valid model. Needs standard handling hook.
-      setError(err?.response?.data?.message || 'Failed to lock seat');
+      setError(
+        err?.response?.data?.message ||
+          "Seat couldn't be locked. It might have just been taken.",
+      );
       setSelectedSeats([]);
       await fetchSeats();
     } finally {
@@ -114,88 +104,94 @@ export default function EventSeatSelectionPage() {
     }
   };
 
+  // POST /api/bookings/{bookingId}/confirm
   const handleConfirmBooking = async () => {
-    if (!lockedSeatId) return;
+    if (!bookingId) return;
     setIsProcessing(true);
-    
     try {
-      await bookingApi.confirmSeatBooking(lockedSeatId);
+      await bookingApi.confirmBooking(bookingId);
       setBookingConfirmed(true);
       setLockExpiresAt(null);
     } catch (err: any) {
       console.error('Confirm error:', err);
-      setError('Payment/Booking confirmation failed. Your hold might have expired.');
+      setError('Booking confirmation failed. Your hold might have expired.');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const cancelHold = async () => {
-    if (!lockedSeatId) return;
-    
-    try {
-      await bookingApi.releaseLockSeat(lockedSeatId);
-      setLockedSeatId(null);
-      setLockExpiresAt(null);
-      setSelectedSeats([]);
-      fetchSeats();
-    } catch (err) {
-      console.error('Failed to release hold: ', err);
-    }
+  // No spec endpoint for releasing — clear state + refresh
+  const cancelHold = () => {
+    setBookingId(null);
+    setLockExpiresAt(null);
+    setSelectedSeats([]);
+    fetchSeats();
   };
 
-  if (loading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading venue map...</div>;
-  }
+  // ─── Loading ──────────────────────────────────────────────────────────────
+  if (loading) return (
+    <div className="p-8 text-center text-muted-foreground">Loading venue map...</div>
+  );
 
+  // ─── Booking confirmed ────────────────────────────────────────────────────
   const selectedSeat = selectedSeats[0];
-  const totalPrice = selectedSeat?.price || 0;
 
-  if (bookingConfirmed) {
-    return (
-      <div className="max-w-md mx-auto mt-20 p-6">
-        <Card className="border-green-500/50">
-          <CardHeader className="text-center">
-            <div className="mx-auto bg-green-500/20 text-green-500 p-3 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-8 h-8" />
+  if (bookingConfirmed) return (
+    <div className="max-w-md mx-auto mt-20 p-6">
+      <Card className="border-green-500/50">
+        <CardHeader className="text-center">
+          <div className="mx-auto bg-green-500/20 text-green-500 p-3 rounded-full w-16 h-16 flex items-center justify-center mb-4">
+            <CheckCircle2 className="w-8 h-8" />
+          </div>
+          <CardTitle className="text-2xl">Booking Confirmed!</CardTitle>
+          <CardDescription>Your seat has been successfully secured.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-muted p-4 rounded-lg flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Section</p>
+              <p className="font-bold">{selectedSeat?.section}</p>
             </div>
-            <CardTitle className="text-2xl">Booking Confirmed!</CardTitle>
-            <CardDescription>Your seat has been successfully secured.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg flex justify-between items-center">
-              <div>
-                <p className="text-sm text-muted-foreground">Section</p>
-                <p className="font-bold">{selectedSeat.section}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Row</p>
-                <p className="font-bold">{selectedSeat.row}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Seat</p>
-                <p className="font-bold">{selectedSeat.number}</p>
-              </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Row</p>
+              <p className="font-bold">{selectedSeat?.row}</p>
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full" onClick={() => navigate('/my-registrations')}>
-              View My Tickets
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
+            <div>
+              <p className="text-sm text-muted-foreground">Seat</p>
+              <p className="font-bold">{selectedSeat?.number}</p>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button className="w-full" onClick={() => navigate('/my-registrations')}>
+            View My Tickets
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
 
+  const totalPrice = selectedSeat?.price ?? 0;
+
+  // ─── Main layout ──────────────────────────────────────────────────────────
   return (
     <div className="container mx-auto py-8 px-4 flex flex-col lg:flex-row gap-8">
+
       {/* Main Seat Map Area */}
       <div className="flex-1">
         <div>
+          {/* Back to Event */}
+          <Link to={`/events/${id}`}>
+            <Button variant="ghost" size="sm" className="mb-4">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Event
+            </Button>
+          </Link>
           <h1 className="text-3xl font-bold tracking-tight mb-2">Select Your Seat</h1>
-          <p className="text-muted-foreground mb-8">Choose from the available seats. Locked seats are currently being held by others.</p>
-          
+          <p className="text-muted-foreground mb-8">
+            Choose from the available seats. Locked seats are currently being held by others.
+          </p>
+
           {error && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
@@ -206,9 +202,9 @@ export default function EventSeatSelectionPage() {
 
           <div className="bg-card border rounded-3xl shadow-sm overflow-hidden">
             {seats.length > 0 ? (
-              <InteractiveSeatMap 
-                seats={seats} 
-                selectedSeatIds={selectedSeats.map(s => s.id)} 
+              <InteractiveSeatMap
+                seats={seats}
+                selectedSeatIds={selectedSeats.map((s) => s.id)}
                 onSeatSelect={handleSeatSelect}
                 maxSelection={1}
               />
@@ -228,9 +224,12 @@ export default function EventSeatSelectionPage() {
             <CardHeader>
               <CardTitle>Your Selection</CardTitle>
               <CardDescription>
-                {lockedSeatId ? 'Complete checkout to secure your seat.' : 'Select a seat to continue.'}
+                {bookingId
+                  ? 'Complete checkout to secure your seat.'
+                  : 'Select a seat to continue.'}
               </CardDescription>
             </CardHeader>
+
             <CardContent>
               {selectedSeats.length > 0 ? (
                 <div className="space-y-4">
@@ -239,27 +238,19 @@ export default function EventSeatSelectionPage() {
                       <div className="font-semibold text-lg">
                         {selectedSeat.section} - Row {selectedSeat.row}
                       </div>
-                      <div className="text-sm text-muted-foreground">Seat {selectedSeat.number}</div>
+                      <div className="text-sm text-muted-foreground">
+                        Seat {selectedSeat.number}
+                      </div>
                     </div>
                     {selectedSeat.price !== undefined && (
                       <div className="font-bold text-xl">₹{selectedSeat.price}</div>
                     )}
                   </div>
-                  
+
                   {totalPrice > 0 && (
                     <div className="flex justify-between items-center font-bold text-lg pt-2">
                       <span>Total</span>
                       <span>₹{totalPrice}</span>
-                    </div>
-                  )}
-
-                  {lockedSeatId && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-3 rounded-lg flex items-center gap-3">
-                      <Clock className="w-5 h-5 animate-pulse" />
-                      <div>
-                        <div className="text-xs font-bold uppercase tracking-wider">Seat Held</div>
-                        <div className="font-mono text-xl">{timeRemaining}</div>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -268,12 +259,24 @@ export default function EventSeatSelectionPage() {
                   No seat selected
                 </div>
               )}
+
+              {/* Active hold timer */}
+              {bookingId && (
+                <div className="mt-4 bg-amber-500/10 border border-amber-500/20 text-amber-500 p-3 rounded-lg flex items-center gap-3">
+                  <Clock className="w-5 h-5 animate-pulse" />
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-wider">Seat Held</div>
+                    <div className="font-mono text-xl">{timeRemaining}</div>
+                  </div>
+                </div>
+              )}
             </CardContent>
+
             <CardFooter className="flex flex-col gap-3">
-              {!lockedSeatId ? (
-                <Button 
-                  className="w-full" 
-                  size="lg" 
+              {!bookingId ? (
+                <Button
+                  className="w-full"
+                  size="lg"
                   disabled={selectedSeats.length === 0 || isProcessing}
                   onClick={handleHoldSeat}
                 >
@@ -281,16 +284,18 @@ export default function EventSeatSelectionPage() {
                 </Button>
               ) : (
                 <>
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     size="lg"
                     onClick={handleConfirmBooking}
                     disabled={isProcessing}
                   >
-                    {isProcessing ? 'Processing...' : `Confirm Booking ${totalPrice > 0 ? `(₹${totalPrice})` : ''}`}
+                    {isProcessing
+                      ? 'Processing...'
+                      : `Confirm Booking${totalPrice > 0 ? ` · ₹${totalPrice}` : ''}`}
                   </Button>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="w-full text-muted-foreground"
                     onClick={cancelHold}
                     disabled={isProcessing}

@@ -26,19 +26,13 @@ export interface UserSummary {
 /** User profile response from backend */
 export interface UserProfileResponse {
   id: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  phone: string;
+  role: RoleName;
+  status: 'ACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION';
   universityId: string;
-  roles: RoleName[];
-  accountStatus: 'ACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION';
-  createdAt: string;
-  lastLogin?: string;
-  clubMemberships?: {
-    clubSlug: string;
-    clubName: string;
-    role: 'MEMBER' | 'LEADER';
-    joinedAt: string;
-  }[];
+  joinedClub: string[];
 }
 
 /** Request to update user profile */

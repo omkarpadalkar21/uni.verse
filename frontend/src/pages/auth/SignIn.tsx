@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { authApi, setTokens, type LoginRequest } from '@/lib/api';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { authApi, setTokens, type LoginRequest, clubApi } from '@/lib/api';
+import { getAuthInfo } from '@/lib/auth';
+import { Eye, EyeOff, AlertCircle, Info } from 'lucide-react';
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const pendingMessage = location.state?.message as string | undefined;
   const [formData, setFormData] = useState<LoginRequest>({
     email: '',
     password: '',
@@ -54,7 +57,14 @@ const SignIn: React.FC = () => {
     try {
       const response = await authApi.login(formData);
       setTokens(response.access_token, response.refresh_token);
-      navigate('/'); // Redirect to home page
+      const { isClubLeader } = getAuthInfo();
+      if (isClubLeader) {
+        // Redirect to club registration only if they haven't registered a club yet
+        const alreadyHasClub = await clubApi.hasMyClub();
+        navigate(alreadyHasClub ? '/' : '/clubs/register');
+      } else {
+        navigate('/');
+      }
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
         const error = err as { response?: { data?: { message?: string } } };
@@ -98,6 +108,13 @@ const SignIn: React.FC = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {pendingMessage && (
+              <Alert className="border-blue-500/30 bg-blue-500/10">
+                <Info className="h-4 w-4 text-blue-400" />
+                <AlertDescription className="text-blue-300">{pendingMessage}</AlertDescription>
+              </Alert>
+            )}
+
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />

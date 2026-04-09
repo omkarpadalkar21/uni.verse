@@ -13,8 +13,11 @@ const VerifyEmail: React.FC = () => {
   const location = useLocation();
   const email = location.state?.email || '';
   const message = location.state?.message || 'Please check your email for the verification code.';
+  const role = location.state?.role?.toLowerCase() || '';
+  const [isOrganizer, setIsOrganizer] = useState(role === 'organizer');
 
   const [otp, setOtp] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
@@ -25,9 +28,9 @@ const VerifyEmail: React.FC = () => {
   // Redirect if no email provided
   useEffect(() => {
     if (!email) {
-      navigate('/auth/signup');
+      navigate(role === 'organizer' ? '/auth/signup?role=organizer' : '/auth/signup');
     }
-  }, [email, navigate]);
+  }, [email, navigate, role]);
 
   // Countdown timer
   useEffect(() => {
@@ -46,9 +49,23 @@ const VerifyEmail: React.FC = () => {
   };
 
   const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 8);
+    const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 8);
     setOtp(value);
     setError('');
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (!selectedFile.type.startsWith('image/') && selectedFile.type !== 'application/pdf') {
+        setError('Only image or PDF files are allowed');
+        setFile(null);
+        e.target.value = '';
+        return;
+      }
+      setFile(selectedFile);
+      setError('');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,22 +77,47 @@ const VerifyEmail: React.FC = () => {
       return;
     }
 
-    if (!/^[0-9A-Z]{8}$/.test(otp)) {
-      setError('OTP must contain only numbers and uppercase letters');
+    if (!/^[0-9]{8}$/.test(otp)) {
+      setError('OTP must contain only numbers');
+      return;
+    }
+
+    if (isOrganizer && !file) {
+      setError('Please upload a verification document');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const verifyData: VerifyEmailRequest = { email, otp };
-      const response = await authApi.verifyEmail(verifyData);
-      setTokens(response.access_token, response.refresh_token);
-      navigate('/'); // Redirect to home page
+      if (isOrganizer) {
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('otp', otp);
+        if (file) formData.append('verificationDocument', file);
+        
+        await authApi.uploadOrganizerProof(formData);
+        navigate('/auth/signin', {
+          state: {
+            message:
+              'Your verification document has been submitted. Once an admin approves your request, sign in and go to "Register a Club" to set up your club.',
+            redirectToClub: true,
+          },
+        });
+      } else {
+        const verifyData: VerifyEmailRequest = { email, otp };
+        const response = await authApi.verifyEmail(verifyData);
+        setTokens(response.access_token, response.refresh_token);
+        navigate('/'); // Redirect to home page
+      }
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
         const error = err as { response?: { data?: { message?: string } } };
-        setError(error.response?.data?.message || 'Invalid or expired OTP. Please try again.');
+        const errorMessage = error.response?.data?.message || 'Invalid or expired OTP. Please try again.';
+        setError(errorMessage);
+        if (errorMessage.toLowerCase().includes('proof') || errorMessage.toLowerCase().includes('organizer')) {
+          setIsOrganizer(true);
+        }
       } else {
         setError('An error occurred. Please try again.');
       }
@@ -92,13 +134,7 @@ const VerifyEmail: React.FC = () => {
     setError('');
 
     try {
-      // Re-register to resend OTP (backend sends new verification email)
-      await authApi.register({
-        email,
-        password: '', // Not needed for resend, backend will just send new OTP
-        phone: '',
-        universityId: '',
-      });
+      await authApi.resendVerification({ email });
       setResendSuccess(true);
       setCountdown(600); // Reset countdown
       setCanResend(false);
@@ -172,6 +208,24 @@ const VerifyEmail: React.FC = () => {
               </p>
             </div>
 
+            {isOrganizer && (
+              <div className="space-y-2">
+                <Label htmlFor="document">Verification Document</Label>
+                <Input
+                  id="document"
+                  name="document"
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileChange}
+                  disabled={isLoading}
+                  className="cursor-pointer file:text-primary file:bg-primary/10 file:border-0 file:rounded-md file:px-4 file:py-2 hover:file:bg-primary/20 file:mr-4 file:transition-colors file:cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground text-center">
+                  Upload proof (Image or PDF)
+                </p>
+              </div>
+            )}
+
             <div className="text-center text-sm text-muted-foreground">
               {countdown > 0 ? (
                 <p>Code expires in: <span className="font-medium text-foreground">{formatTime(countdown)}</span></p>
@@ -199,7 +253,7 @@ const VerifyEmail: React.FC = () => {
         </CardContent>
         <CardFooter className="justify-center text-sm text-muted-foreground">
           Wrong email?{' '}
-          <Link to="/auth/signup" className="text-primary hover:underline ml-1">
+          <Link to={role === 'organizer' ? '/auth/signup?role=organizer' : '/auth/signup'} className="text-primary hover:underline ml-1">
             Go back
           </Link>
         </CardFooter>

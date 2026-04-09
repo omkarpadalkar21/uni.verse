@@ -74,7 +74,7 @@ const SignUp: React.FC = () => {
     try {
       const response = await authApi.register(formData);
       // Redirect to OTP verification page with email
-      navigate('/auth/verify-email', { state: { email: formData.email, message: response.message } });
+      navigate('/auth/verify-email', { state: { email: formData.email, message: response.message, role: roleParam } });
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
         const error = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };

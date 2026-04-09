@@ -22,7 +22,6 @@ const LandingPage: React.FC = () => {
         <Features />
         <HowItWorks />
         <SeatDemo />
-
         <Testimonials />
         <FinalCTA />
       </main>

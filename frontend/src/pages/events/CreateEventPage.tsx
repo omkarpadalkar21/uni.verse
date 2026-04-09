@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, AlertCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,9 +31,11 @@ const EVENT_CATEGORIES: { value: EventCategory; label: string }[] = [
 
 export default function CreateEventPage() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [createdEventId, setCreatedEventId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<Partial<EventCreateRequest>>({
@@ -123,8 +125,11 @@ export default function CreateEventPage() {
         status: publish ? "PUBLISHED" : "DRAFT",
       };
       
-      await eventManagementApi.createEvent(slug, data);
+      const createdEvent = await eventManagementApi.createEvent(slug, data);
+      setCreatedEventId(createdEvent.id);
       setSuccess(true);
+      // Navigate to the new event's detail page after a short delay so user sees success state
+      setTimeout(() => navigate(`/events/${createdEvent.id}`), 1500);
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
         const error = err as { response?: { data?: { message?: string } } };
@@ -176,9 +181,11 @@ export default function CreateEventPage() {
                 <Button variant="outline" asChild>
                   <Link to={`/dashboard/club/${slug}`}>Back to Dashboard</Link>
                 </Button>
-                <Button asChild>
-                  <Link to={`/clubs/${slug}`}>View Club</Link>
-                </Button>
+                {createdEventId && (
+                  <Button asChild>
+                    <Link to={`/events/${createdEventId}`}>View Event</Link>
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

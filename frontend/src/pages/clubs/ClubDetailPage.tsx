@@ -19,9 +19,11 @@ import { clubApi, clubManagementApi, isAuthenticated } from "@/lib/api";
 import type { ClubDTO } from "@/types/club";
 import { CLUB_CATEGORY_COLORS, CLUB_CATEGORY_LABELS } from "@/constants/clubCategories";
 import { cn } from "@/lib/utils";
+import { getAuthInfo } from "@/lib/auth";
 
 export default function ClubDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { isClubLeader } = getAuthInfo();
   const [club, setClub] = useState<ClubDTO | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,10 +174,18 @@ export default function ClubDetailPage() {
               </div>
             </div>
 
-            {/* Join Button */}
+            {/* Join / Manage Button */}
             {!isAuthenticated() ? (
               <Button asChild>
                 <Link to="/auth/signin">Sign in to Join</Link>
+              </Button>
+            ) : isClubLeader ? (
+              // Club leaders manage their clubs — they can't join a club as a member
+              <Button variant="outline" asChild>
+                <Link to={`/dashboard/club/${slug}`}>
+                  <Shield className="h-4 w-4 mr-2" />
+                  Manage Your Club
+                </Link>
               </Button>
             ) : joinStatus === "member" ? (
               <Badge variant="secondary" className="text-sm py-1.5 px-4">

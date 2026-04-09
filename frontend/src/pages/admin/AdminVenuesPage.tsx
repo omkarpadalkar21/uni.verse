@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { venueApi } from '@/lib/api';
 import type { VenueSummary } from '@/types/venue';
 import { Link } from 'react-router-dom';
-import { Plus, MapPin } from 'lucide-react';
+import { Plus, MapPin, Pencil } from 'lucide-react';
 
 export default function AdminVenuesPage() {
   const [venues, setVenues] = useState<VenueSummary[]>([]);
@@ -68,9 +68,12 @@ export default function AdminVenuesPage() {
                 <div className="text-sm text-muted-foreground mb-4">
                   Type: {venue.type || 'Standard'}
                 </div>
-                <Button variant="outline" className="w-full">
-                  Edit Venue
-                </Button>
+                <Link to={`/admin/venues/${venue.id}/edit`}>
+                  <Button variant="outline" className="w-full">
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit Venue
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ))}

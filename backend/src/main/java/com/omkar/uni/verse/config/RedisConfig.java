@@ -74,26 +74,27 @@ public class RedisConfig {
 
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        // Configure ObjectMapper to handle Spring Data types (like Page)
+        // GenericJackson2JsonRedisSerializer automatically embeds @class type metadata
+        // on writes and reads it back on deserialization — no manual ObjectMapper wiring needed.
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // Activate default typing so @class is written for all non-final types
         objectMapper.activateDefaultTyping(
                 objectMapper.getPolymorphicTypeValidator(),
                 com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping.NON_FINAL,
                 com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY
         );
-        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-        objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        
-        // Use Jackson2JsonRedisSerializer with custom ObjectMapper
-        org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer<Object> jsonRedisSerializer = 
-                new org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
+
+        GenericJackson2JsonRedisSerializer jsonSerializer =
+                new GenericJackson2JsonRedisSerializer(objectMapper);
 
         // String serializer for keys
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
 
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(stringSerializer))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonRedisSerializer))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer))
                 .entryTtl(Duration.ofMinutes(5))
                 .disableCachingNullValues()
                 .prefixCacheNameWith("universe/cache/");

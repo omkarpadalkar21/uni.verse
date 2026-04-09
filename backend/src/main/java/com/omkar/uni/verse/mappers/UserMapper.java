@@ -12,7 +12,11 @@ public interface UserMapper {
     @Mapping(target = "password", source = "password", ignore = true)
     User toEntity(RegistrationRequest registrationRequest);
 
+    @Mapping(target = "status", source = "accountStatus")
+    @Mapping(target = "joinedClub", ignore = true)
     UserProfileResponse toUserProfileResponse(User user);
 
+    @Mapping(target = "roles", expression = "java(java.util.Collections.singletonList(user.getRole().name()))")
+    @Mapping(target = "lastLogin", source = "lastLoginAt")
     UserBasicDTO toUserBasicDto(User user);
 }

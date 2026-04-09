@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/clubs")
 @RequiredArgsConstructor
@@ -26,6 +28,15 @@ public class ClubController {
                 clubService.registerNewClub(registrationRequest),
                 HttpStatus.CREATED
         );
+    }
+
+    /**
+     * Returns whether the authenticated CLUB_LEADER has already created a club.
+     * Used by the frontend to conditionally redirect to /clubs/register after sign-in.
+     */
+    @GetMapping("/my-club")
+    public ResponseEntity<Map<String, Boolean>> hasMyClub() {
+        return ResponseEntity.ok(Map.of("hasClub", clubService.hasMyClub()));
     }
 
     @GetMapping("/{offset}/{pageSize}")
